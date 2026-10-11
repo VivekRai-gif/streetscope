@@ -18,6 +18,7 @@ import { AreaIntel } from './components/AreaIntel'
 import { SettingsPopover } from './components/SettingsPopover'
 import { PointCloudViewer } from './components/PointCloudViewer'
 import { BuildCard } from './components/BuildCard'
+import { UploadCard } from './components/UploadCard'
 
 const Q = new URLSearchParams(location.search)
 const CTX_RADIUS = 900
@@ -54,6 +55,7 @@ export default function App() {
   const [weather, setWeather] = useState<Weather | null>(null)
   const [doctor, setDoctor] = useState('checking…')
   const [toast, setToast] = useState('')
+  const [upload, setUpload] = useState<File | null>(null)
 
   /* ---------- scene and data ---------- */
   const onReady = useCallback((s: CityScene) => { sceneRef.current = s; s.on('quality', setLowPower); setScene(s); (window as unknown as { __gc: CityScene }).__gc = s }, [])   // __gc: for scripted tests
@@ -231,9 +233,11 @@ export default function App() {
       </>}
       {site && cloud && <PointCloudViewer site={site} hourIdx={hourIdx} onClose={() => setCloud(false)} />}
       <TopNav mode={mode} setMode={m => { if (cloud) setCloud(false); setMode(m) }} sites={sites} siteId={siteId} onSite={id => { setSiteId(id); setCloud(false) }} onPlace={openPlace}
-        status={{ tiles: tilesState, doctor, live: !!weather }} onSettings={() => setSettings(v => !v)} cloud={cloud} setCloud={v => { if (v && !site) { setToast('The point-cloud view needs a twin; build one for this place first.'); return } setCloud(v) }} placeName={place?.name} />
+        status={{ tiles: tilesState, doctor, live: !!weather }} onSettings={() => setSettings(v => !v)} cloud={cloud} setCloud={v => { if (v && !site) { setToast('The point-cloud view needs a twin; build one for this place first.'); return } setCloud(v) }} placeName={place?.name}
+        onUpload={f => { setPlace(null); setUpload(f) }} />
       {settings && <SettingsPopover hasKey={hasKey} tilesErr={tilesErr} onKey={onKey} reduced={reduced} setReduced={setReduced} quality={quality} setQuality={setQualityState} lowPower={lowPower} onClose={() => setSettings(false)} />}
       {place && !site && <BuildCard key={place.lat + ',' + place.lon} place={place} onClose={() => setPlace(null)} onDone={onBuilt} />}
+      {upload && <UploadCard key={upload.name + upload.size} file={upload} onClose={() => setUpload(null)} onDone={id => { setUpload(null); onBuilt(id) }} />}
       {ctxStatus && <div className="glass pointer-events-none absolute left-1/2 top-[70px] z-20 -translate-x-1/2 rounded-full px-4 py-1.5 text-[12px] text-ink"><span className="mr-2 inline-block h-1.5 w-1.5 animate-ping rounded-full bg-cyan" />{ctxStatus}</div>}
       {toast && <div className="glass rise-in pointer-events-auto absolute left-1/2 top-[70px] z-30 max-w-[640px] -translate-x-1/2 rounded-xl px-4 py-3 text-[12.5px]"><span className="text-ink">{toast}</span><button onClick={() => setToast('')} className="ml-3 text-dim hover:text-ink">×</button></div>}
       {loading && <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center"><div className="glass rise-in rounded-xl px-5 py-3 text-[13px] text-ink"><span className="mr-2 inline-block h-1.5 w-1.5 animate-ping rounded-full bg-cyan" />{loading}</div></div>}

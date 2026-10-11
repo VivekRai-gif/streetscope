@@ -14,3 +14,9 @@ web/data/_context/
 web/data/_osm/
 video/build/
 video/out/
+# surveys uploaded in the app (your own data)
+web/data/_uploads/
+# voice model environment for the video
+video/.venv/
+# twins built from uploaded surveys carry the survey owner's licence (not MIT)
+web/data/iit_gandhinagar_campus/

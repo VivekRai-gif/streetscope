@@ -1,9 +1,10 @@
-"""Export a classified LiDAR point cloud for the web point-cloud inspector (US sites with USGS 3DEP coverage).
+"""Export a classified point cloud for the web point-cloud inspector (USGS 3DEP LiDAR, or your own survey via cli --cloud).
 
 Run: python -m streetscope.points --site web/data/dupont
 
-Writes points.bin.gz (8 bytes per point: int16 x, y, z in centimetres in the site frame with y up, uint8 class,
-uint8 height above ground in 0.25 m steps) and points.json (counts, source, class table).
+Writes points.bin.gz (8 bytes per point: int16 x, y, z in steps of scale_m (1 cm up to 320 m radius) in the site frame
+with y up, uint8 class, uint8 height above ground in 0.25 m steps), points.rgb.gz (3 bytes per point, when the survey
+has colour) and points.json (counts, source, class table).
 Classes: 1 ground, 2 road, 3 building, 4 vegetation, 5 water, 0 other. Bit 0x80 marks a class we derived
 (from footprints, road widths and multiple returns) rather than one the survey labelled.
 """
@@ -66,34 +67,52 @@ def export(site: Path, max_points: int = 1_200_000, spacing_m: float = 0.7, seed
     want = json.loads((site / "lidar.json").read_text())["project"] if (site / "lidar.json").exists() else None
     project = next((p for p in projects if p["name"] == want), projects[0])
     pts = lidar.read_points(c["lat"], c["lon"], radius, project, spacing_m=spacing_m, max_nodes=400)
+    dtm = lidar.rasterize(pts, radius)["dtm"]          # ground surface from the survey's own ground points
+    source = f"USGS 3D Elevation Program LiDAR, project {project['name']}, read from AWS Open Data (usgs-lidar-public)"
+    return write(site, twin, pts, dtm, source, spacing_m, max_points, seed)
+
+
+def write(site: Path, twin: dict, pts: dict, dtm: np.ndarray, source: str, spacing_m: float, max_points: int = 1_200_000,
+          seed: int = 3, note: str | None = None) -> dict:
+    """Write points.bin.gz (+ points.rgb.gz when the survey has colour) and points.json for the web inspector."""
+    radius = twin["meta"]["radius_m"]
     x, z, h, cls, nr = pts["x"], pts["z"], pts["h"].astype(np.float64), pts["cls"], pts["nr"]
+    rgb, ours = pts.get("rgb"), pts.get("derived")
     keep = (np.abs(x) <= radius) & (np.abs(z) <= radius) & ~np.isin(cls, (7, 18))
     x, z, h, cls, nr = x[keep], z[keep], h[keep], cls[keep], nr[keep]
+    rgb = rgb[keep] if rgb is not None else None
+    ours = ours[keep] if ours is not None else None
     grid = Grid(radius, 1.0)
-    dtm = lidar.rasterize(pts, radius)["dtm"]          # ground surface from the survey's own ground points
     klass, agl = classify(x, z, h, cls, nr, twin, dtm, grid)
+    if ours is not None:
+        klass[ours] |= DERIVED                         # classes we filled in for a survey that had none
     g0 = float(np.median(dtm))
     if len(x) > max_points:
         idx = np.random.default_rng(seed).choice(len(x), max_points, replace=False)
         idx.sort()
         x, z, h, klass, agl = x[idx], z[idx], h[idx], klass[idx], agl[idx]
+        rgb = rgb[idx] if rgb is not None else None
     n = len(x)
+    scale = 0.01 if radius <= 320 else 0.02 if radius <= 650 else 0.05   # int16 must reach the edge of the site
     rec = np.zeros(n, dtype=[("x", "<i2"), ("y", "<i2"), ("z", "<i2"), ("c", "u1"), ("a", "u1")])
-    rec["x"] = np.clip(np.round(x * 100), -32767, 32767)
-    rec["y"] = np.clip(np.round((h - g0) * 100), -32767, 32767)
-    rec["z"] = np.clip(np.round(z * 100), -32767, 32767)
+    rec["x"] = np.clip(np.round(x / scale), -32767, 32767)
+    rec["y"] = np.clip(np.round((h - g0) / scale), -32767, 32767)
+    rec["z"] = np.clip(np.round(z / scale), -32767, 32767)
     rec["c"] = klass
     rec["a"] = np.clip(np.round(agl * 4), 0, 255)
     (site / "points.bin.gz").write_bytes(gzip.compress(rec.tobytes(), 6))
+    if rgb is not None:
+        (site / "points.rgb.gz").write_bytes(gzip.compress(np.ascontiguousarray(rgb, dtype=np.uint8).tobytes(), 6))
+    else:
+        (site / "points.rgb.gz").unlink(missing_ok=True)
     base = klass & 0x7F
     meta = {
-        "count": n, "bytes_per_point": 8, "scale_m": 0.01, "frame": "site metres: x east, y up from the median ground, z south",
-        "source": f"USGS 3D Elevation Program LiDAR, project {project['name']}, read from AWS Open Data (usgs-lidar-public)",
-        "spacing_m": spacing_m, "ground_height_m": round(g0, 2),
+        "count": n, "bytes_per_point": 8, "scale_m": scale, "frame": "site metres: x east, y up from the median ground, z south",
+        "source": source, "spacing_m": spacing_m, "ground_height_m": round(g0, 2), "rgb": rgb is not None,
         "classes": {NAMES[k]: int((base == k).sum()) for k in NAMES},
         "derived": int(((klass & DERIVED) > 0).sum()),
-        "derived_note": "The survey labels ground and some buildings. Unlabelled points are classed by us: near the ground "
-                        "(road if inside an OpenStreetMap road width), inside a building footprint, or vegetation from multiple returns.",
+        "derived_note": note or ("The survey labels ground and some buildings. Unlabelled points are classed by us: near the ground "
+                                 "(road if inside an OpenStreetMap road width), inside a building footprint, or vegetation from multiple returns."),
     }
     (site / "points.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     return meta

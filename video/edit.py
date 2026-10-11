@@ -13,9 +13,9 @@ HERE = Path(__file__).resolve().parent
 B = HERE / "build"
 OUT = HERE / "out"
 NARR = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
-FADE = {"s1_twin": 0.04, "s8_outro": 0.04}      # continuous camera: a straight cut. Everything else crossfades.
+FADE = {"s1_twin": 0.04, "s9_points": 0.04, "s10_splats": 0.04, "s11_outro": 0.04}   # continuous camera: a straight cut. Everything else crossfades.
 XF = 0.5
-TOP_CAPTIONS = {"s6_simulate", "s7_anywhere"}    # panels sit at the bottom in these shots
+TOP_CAPTIONS = {"s6_simulate", "s7_anywhere", "s8_drone"}    # panels sit at the bottom in these shots
 
 
 def clip_meta():

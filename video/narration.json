@@ -1,79 +1,73 @@
 {
+ "engine": "veena",
+ "veena": {"speaker": "maitri", "temperature": 0.4, "tries": 8, "sentence_gap_s": 0.3, "f0_range": [170, 340],
+           "names": ["delhi", "connaught", "charminar", "hyderabad", "gandhinagar", "radial", "sonnet", "claude", "green", "city", "ai", "iit", "webgl", "github"]},
  "voice": "en-IN-NeerjaExpressiveNeural",
  "rate": "+8%",
+ "note": "{shown|said}: captions show the left part, the voice says the right part (numbers and initials spelt out for the TTS)",
  "shots": [
   {
    "id": "s0_intro",
    "chapter": null,
-   "text": "In a Delhi summer, shade decides whether a street can be walked. GreenCityAI finds the heat, street by street, and tests the fix before anyone builds it."
+   "text": "In a Delhi summer, shade decides whether a street can be walked. {GreenCityAI|Green City A I} finds the heat, street by street, and tests the fix before anyone builds it."
   },
   {
    "id": "s1_twin",
-   "chapter": [
-    "01",
-    "A digital twin from open data",
-    "Connaught Place · New Delhi"
-   ],
-   "text": "This is Connaught Place, New Delhi, as a 3D digital twin built only from open data: 212 buildings from OpenStreetMap, 936 trees from a satellite canopy map on AWS Open Data, and the true sun for the fifteenth of May."
+   "chapter": ["01", "A digital twin from open data", "Connaught Place · New Delhi"],
+   "text": "This is Connaught Place, New Delhi, as a {3D|three D} twin built from open data: {212|two hundred and twelve} buildings from {OpenStreetMap,|Open Street Map,} {936|nine hundred and thirty six} trees from a satellite canopy map on {AWS,|A W S,} and the true sun for the {15th|fifteenth} of May."
   },
   {
    "id": "s2_heat",
-   "chapter": [
-    "02",
-    "Heat on every footpath",
-    "15 May · hourly sun"
-   ],
-   "text": "Every hour, we trace the sun onto every footpath. At 7 a.m., a third of the walkways are shaded. By noon, the sun is 79 degrees high, and only 4 percent are. The hex map shows where walkers have nowhere to hide."
+   "chapter": ["02", "Heat on every footpath", "15 May · hourly sun"],
+   "text": "Every hour, we trace the sun onto every footpath. At {7 a.m.,|seven A M,} a third of the walkways are in shade. By noon, the sun is {79|seventy nine} degrees high, and only {4 percent|four percent} are. The hex map shows where walkers have nowhere to hide."
   },
   {
    "id": "s3_city",
-   "chapter": [
-    "03",
-    "The city around it",
-    "900 m of OpenStreetMap"
-   ],
-   "text": "Around it, we read a kilometre of the city: 658 buildings, 111 junctions, 27 bus stops. And every number wears a label: observed, computed, simulated or proposed."
+   "chapter": ["03", "The city around it", "900 m of OpenStreetMap"],
+   "text": "Around it, we read a kilometre of the city, and every number wears a label: observed, computed, simulated or proposed."
   },
   {
    "id": "s4_analyze",
-   "chapter": [
-    "04",
-    "Analyze a hot spot",
-    "Middle Circle × Radial Road 2"
-   ],
-   "text": "Pillars mark traffic hot spots from a peak-hour screening model. Analyze scans Middle Circle at Radial Road 2: one approach carries 1.57 times its assumed capacity, and at 3 p.m., 85 percent of nearby walkway is in direct sun."
+   "lead": 2.9,
+   "chapter": ["04", "Analyze a hot spot", "Middle Circle × Radial Road 2"],
+   "text": "Analyze scans Middle Circle at Radial Road {2.|two.} In simulated peak traffic, one approach carries {1.57|one point five seven} times its capacity, and at {3 p.m.,|three P M,} {85 percent|eighty five percent} of the walkway nearby is in direct sun."
   },
   {
    "id": "s5_doctor",
-   "chapter": [
-    "05",
-    "AI street doctor",
-    "Claude Sonnet 5.5"
-   ],
-   "text": "Claude Sonnet 5.5 is the street doctor. It can only answer by calling our measuring tools, and a checker traces every number it writes back to a tool."
+   "chapter": ["05", "AI street doctor", "Claude Sonnet 5.5"],
+   "text": "Claude Sonnet {5.5|five point five} is the street doctor. It answers only by calling our measuring tools, and a checker traces every number back to a tool."
   },
   {
    "id": "s6_simulate",
-   "chapter": [
-    "06",
-    "Test the fix",
-    "Current vs proposed"
-   ],
-   "text": "Then we test fixes. Diverting some trips cuts the load from 1.57 to 1.44 times capacity. 200 street trees lift day-long walkway shade from 13.9 to 17 percent. Costs are labelled assumed, not quotes."
+   "chapter": ["06", "Test the fix", "Current vs proposed"],
+   "text": "Then we test fixes. Diverting some trips cuts the load from {1.57|one point five seven} to {1.44|one point four four} times capacity. {200|Two hundred} street trees lift day-long walkway shade from {13.9|thirteen point nine} to {17 percent.|seventeen percent.} Costs are labelled assumed, not quotes."
   },
   {
    "id": "s7_anywhere",
-   "chapter": [
-    "07",
-    "Anywhere in India",
-    "Search · build · analyse"
-   ],
-   "text": "It works anywhere in India. Search for Charminar in Hyderabad, and the city map appears at once. Press build, and in about half a minute, a new twin is ready, with its own shade and hot spots."
+   "chapter": ["07", "Anywhere in India", "Search · build · analyse"],
+   "text": "It works anywhere in India. Search for Charminar in Hyderabad, and the city map appears at once. Press build, and in about half a minute, a new twin is ready."
   },
   {
-   "id": "s8_outro",
+   "id": "s8_drone",
+   "chapter": ["08", "Your own drone scan", "Upload LAS · LAZ · PLY"],
+   "text": "Got a drone? Upload its point cloud, of any town or city. This public drone survey of the {IIT|I I T} Gandhinagar campus has {12.6 million|twelve point six million} points, and the file finds its own place on the map. The scan measures {71 of 73|seventy one of seventy three} buildings, and finds {2,380|two thousand three hundred and eighty} trees."
+  },
+  {
+   "id": "s9_points",
+   "lead": 1.0,
+   "chapter": ["09", "Every point, measured", "IIT Gandhinagar · drone survey"],
+   "text": "Every point here is real, shown as a photo, or by class: ground, roofs and trees, which we find ourselves, because drone surveys come without labels."
+  },
+  {
+   "id": "s10_splats",
+   "lead": 1.1,
+   "chapter": ["10", "Gaussian splats", "Our own WebGL2 renderer"],
+   "text": "And the same scan as {3D|three D} gaussian splats: one splat for each measured point, drawn by our own {WebGL|Web G L} renderer."
+  },
+  {
+   "id": "s11_outro",
    "chapter": null,
-   "text": "GreenCityAI: open data in, cooler streets out. Built with AWS Open Data and Claude. The code is on GitHub."
+   "text": "{GreenCityAI:|Green City A I:} open data and drone scans in, cooler streets out. Built with {AWS|A W S} Open Data and Claude. The code is on GitHub."
   }
  ]
 }

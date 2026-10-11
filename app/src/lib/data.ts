@@ -34,22 +34,22 @@ export async function loadScenarioGrids(site: Site, id: string) {
 }
 
 export interface PointCloud {
-  count: number; xyz: Float32Array; cls: Uint8Array; agl: Float32Array
-  meta: { source: string; classes: Record<string, number>; derived: number; derived_note: string; spacing_m: number; ground_height_m: number }
+  count: number; xyz: Float32Array; cls: Uint8Array; agl: Float32Array; rgb: Uint8Array | null
+  meta: { source: string; classes: Record<string, number>; derived: number; derived_note: string; spacing_m: number; ground_height_m: number; scale_m?: number; rgb?: boolean }
 }
 
-/* USGS LiDAR exported by `python -m streetscope.points`. Null when the site has no survey. */
+/* Survey points exported by the pipeline (USGS LiDAR, or your own drone/LiDAR survey). Null when the site has none. */
 export async function loadPoints(site: Site): Promise<PointCloud | null> {
   const base = DATA + site.ref.twin.slice(0, site.ref.twin.lastIndexOf('/') + 1)
   const mr = await fetch(base + 'points.json')
   if (!mr.ok) return null
   const meta = await mr.json()
-  const buf = await gunz(base + 'points.bin.gz')
-  const n = meta.count, dv = new DataView(buf), xyz = new Float32Array(n * 3), cls = new Uint8Array(n), agl = new Float32Array(n)
+  const [buf, col] = await Promise.all([gunz(base + 'points.bin.gz'), meta.rgb ? gunz(base + 'points.rgb.gz') : Promise.resolve(null)])
+  const n = meta.count, dv = new DataView(buf), xyz = new Float32Array(n * 3), cls = new Uint8Array(n), agl = new Float32Array(n), k = meta.scale_m || 0.01
   for (let i = 0; i < n; i++) {
     const o = i * 8
-    xyz[i * 3] = dv.getInt16(o, true) / 100; xyz[i * 3 + 1] = dv.getInt16(o + 2, true) / 100; xyz[i * 3 + 2] = dv.getInt16(o + 4, true) / 100
+    xyz[i * 3] = dv.getInt16(o, true) * k; xyz[i * 3 + 1] = dv.getInt16(o + 2, true) * k; xyz[i * 3 + 2] = dv.getInt16(o + 4, true) * k
     cls[i] = dv.getUint8(o + 6); agl[i] = dv.getUint8(o + 7) / 4
   }
-  return { count: n, xyz, cls, agl, meta }
+  return { count: n, xyz, cls, agl, rgb: col ? new Uint8Array(col) : null, meta }
 }

@@ -122,10 +122,11 @@ export async function launch({ W = 1920, H = 1080, dsf = 1, tag = 'rec' } = {}) 
   const ws = new WebSocket(page.webSocketDebuggerUrl)
   await new Promise(r => ws.onopen = r)
   let id = 0
-  const pend = new Map(), log = []
+  const pend = new Map(), log = [], on = {}
   ws.onmessage = e => {
     const m = JSON.parse(e.data)
     if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id) }
+    else if (m.method && on[m.method]) on[m.method](m.params)
     else if (m.method === 'Runtime.exceptionThrown') log.push('EXC ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).slice(0, 300))
     else if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') log.push('ERR ' + m.params.args.map(a => a.value || a.description).join(' ').slice(0, 300))
   }
@@ -133,7 +134,7 @@ export async function launch({ W = 1920, H = 1080, dsf = 1, tag = 'rec' } = {}) 
   await send('Runtime.enable'); await send('Page.enable')
   await send('Emulation.setDeviceMetricsOverride', { width: Math.round(W / dsf), height: Math.round(H / dsf), deviceScaleFactor: dsf, mobile: false })
   await send('Page.addScriptToEvaluateOnNewDocument', { source: VIRTUAL_TIME })
-  return new Rec({ chrome, ws, send, log, W, H, dsf })
+  return new Rec({ chrome, ws, send, log, on, W, H, dsf })
 }
 
 class Rec {
@@ -226,6 +227,15 @@ class Rec {
   async key(k, code = k, vk = 13) {
     await this.send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk })
     await this.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk })
+  }
+  /* the next file chooser the page opens gets these files (absolute paths), as if the user picked them */
+  async chooseFiles(files) {
+    await this.send('Page.setInterceptFileChooserDialog', { enabled: true })
+    this.on['Page.fileChooserOpened'] = async p => {
+      delete this.on['Page.fileChooserOpened']
+      await this.send('DOM.setFileInputFiles', { files, backendNodeId: p.backendNodeId })
+      await this.send('Page.setInterceptFileChooserDialog', { enabled: false })
+    }
   }
   async close() { try { this.ws.close() } catch { } this.chrome.kill() }
 }

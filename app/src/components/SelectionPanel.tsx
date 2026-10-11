@@ -97,7 +97,7 @@ export function SelectionPanel({ site, ctx, sel, junctions, hourIdx, onClose, on
     const a = polygonArea(b.footprint)
     title = b.name || 'Building'; kicker = 'Building' + (b.kind && b.kind !== 'yes' ? ' · ' + b.kind : '')
     body = <div className="grid grid-cols-2 gap-x-5 px-5 py-2">
-      <Stat label="Height" value={b.height_m.toFixed(1)} unit="m" b={b.height_source === 'default' ? 'assumed' : 'observed'} sub={b.height_source === 'lidar' ? 'USGS LiDAR' : b.height_source === 'default' ? 'assumed 3 floors' : 'OpenStreetMap'} />
+      <Stat label="Height" value={b.height_m.toFixed(1)} unit="m" b={b.height_source === 'default' ? 'assumed' : 'observed'} sub={b.height_source === 'lidar' ? 'USGS LiDAR' : b.height_source === 'survey' ? 'Drone survey' : b.height_source === 'default' ? 'assumed 3 floors' : 'OpenStreetMap'} />
       <Stat label="Footprint" value={fmt(a, 0)} unit="m²" b="computed" />
       <Stat label="Floors (est.)" value={Math.max(1, Math.round(b.height_m / 3.2))} b="computed" sub="height ÷ 3.2 m" />
       <Stat label="Floor area (est.)" value={fmt(a * Math.max(1, Math.round(b.height_m / 3.2)), 0)} unit="m²" b="computed" />

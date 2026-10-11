@@ -40,7 +40,11 @@ export interface ShadeMeta {
 }
 
 export interface Twin {
-  meta: { name: string; center: { lat: number; lon: number }; radius_m: number; attribution: string; data_level?: number; signals_queried?: boolean }
+  meta: {
+    name: string; center: { lat: number; lon: number }; radius_m: number; attribution: string; data_level?: number; signals_queried?: boolean
+    survey?: { file: string; label: string; format: string; epsg: number; points: number; used_points: number; rgb: boolean; coverage_pct: number
+      ground: string; vegetation: string; derived_pct: number; buildings_measured: number; buildings_mapped: number; tree_tops: number }
+  }
   roads: Road[]; buildings: Building[]; trees: Tree[]; stops: Spot[]; crossings: Spot[]; ev: Spot[]; signals: Spot[]
   stats: {
     road_ways: number; road_km: Record<string, number>; road_width_sources: Record<string, number>; buildings: number
