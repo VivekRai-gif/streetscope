@@ -1,5 +1,7 @@
 # 3-minute video script
 
+**The finished submission video is made by code: see [`video/README.md`](../video/README.md).** It runs about 2:20 on Indian sites (Connaught Place in Delhi, a live build of Charminar in Hyderabad), with an Indian English voice-over, captions and music. The script below is the older hand-recorded version, kept as a backup plan.
+
 Target length 2:50. Record the screen at 1080p. Read the voice-over slowly; it is written to be said aloud.
 Run `scripts/run_all.bat` first and use Chrome. Every link below opens the exact state, so nothing needs clicking to find it.
 

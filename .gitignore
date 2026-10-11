@@ -11,3 +11,6 @@ cdk.out/
 
 # map context downloaded for arbitrary places (cache)
 web/data/_context/
+web/data/_osm/
+video/build/
+video/out/

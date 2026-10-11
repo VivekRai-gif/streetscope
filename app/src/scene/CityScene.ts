@@ -323,7 +323,7 @@ export class CityScene {
     const ar = ctx.areas.filter(a => a.pts.length >= 3)
     this.polygons('context', ar.map(a => ({ pts: a.pts, base: this.tilesOn ? 0 : .08, col: C(a.kind === 'water' ? '#1d4ed8' : COL.emerald, a.kind === 'water' ? .35 : this.tilesOn ? .16 : .13) })), this.tilesOn, true)
     const rl = this.polyColl('context')
-    ctx.lines.forEach(l => rl.add({ positions: this.line3(l.pts, .6), width: l.kind === 'rail' ? 2 : 2.5, material: l.kind === 'rail' ? this.dashMat('#c4b5fd', .7, 10) : this.solid('#3b82f6', .6) }))
+    ctx.lines.forEach(l => rl.add({ positions: this.line3(l.pts, .6), width: l.kind === 'rail' ? 1.4 : 2.5, material: l.kind === 'rail' ? this.dashMat('#c4b5fd', .42, 16) : this.solid('#3b82f6', .6) }))
     // street names and places drawn on the GPU (no HTML)
     const names = this.labelColl('context'), seen = new Set<string>()
     ctx.roads.filter(r => r.name && (r.cls === 'major' || r.cls === 'mid')).sort((a, b) => polyLength(b.pts) - polyLength(a.pts)).forEach(r => {
@@ -334,11 +334,20 @@ export class CityScene {
         style: Cesium.LabelStyle.FILL_AND_OUTLINE, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1400), disableDepthTestDistance: 800 })
     })
     const bb = this.addPrim('poi', new Cesium.BillboardCollection({ scene: this.viewer.scene })), pl = this.labelColl('poi')
-    ctx.pois.forEach((p, i) => {
+    // thin out dense shopping streets: one icon per 10 m and one name per 45 m, transit and health first
+    const PRI: Record<PoiCat, number> = { transit: 0, health: 1, education: 2, civic: 3, leisure: 4, food: 5, shop: 6, parking: 7 }
+    const icons = new Set<string>(), named = new Set<string>()
+    ctx.pois.map((p, i) => ({ p, i })).sort((a, b) => PRI[a.p.cat] - PRI[b.p.cat]).forEach(({ p, i }) => {
+      const ik = Math.round(p.x / 10) + ',' + Math.round(p.z / 10), nk = Math.round(p.x / 45) + ',' + Math.round(p.z / 45)
+      if (icons.has(ik)) return
+      icons.add(ik)
       bb.add({ position: this.pos(p.x, p.z, 4), image: poiIcon(p.cat), width: 18, height: 18, id: 'poi:' + i, disableDepthTestDistance: 1500,
         distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, p.cat === 'transit' || p.cat === 'health' || p.cat === 'education' ? 1500 : 650), scaleByDistance: new Cesium.NearFarScalar(150, 1.1, 1500, .6) })
-      if (p.name) pl.add({ position: this.pos(p.x, p.z, 4), text: p.name, font: '500 11px Inter, sans-serif', fillColor: C('#e2e8f0', .95), outlineColor: C('#020617', .9), outlineWidth: 3,
-        style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(13, -1), horizontalOrigin: Cesium.HorizontalOrigin.LEFT, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 420), disableDepthTestDistance: 1500 })
+      if (p.name && !named.has(nk)) {
+        named.add(nk)
+        pl.add({ position: this.pos(p.x, p.z, 4), text: p.name, font: '500 11px Inter, sans-serif', fillColor: C('#e2e8f0', .95), outlineColor: C('#020617', .9), outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(13, -1), horizontalOrigin: Cesium.HorizontalOrigin.LEFT, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 420), disableDepthTestDistance: 1500 })
+      }
     })
   }
 
@@ -660,6 +669,7 @@ export class CityScene {
       })
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
     const stop = () => this.stopOrbit()
+    v.scene.canvas.addEventListener('pointerleave', () => { v.scene.canvas.style.cursor = ''; this.emit('hover', null) })   // pointer moved onto a panel
     v.scene.canvas.addEventListener('pointerdown', stop)
     v.scene.canvas.addEventListener('wheel', stop, { passive: true })
   }

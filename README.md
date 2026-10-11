@@ -67,7 +67,7 @@ Run `scripts/run_all.bat` (or the commands under *Run it*), then open these link
 ![AIIMS junction with street trees and the doctor's answer](docs/img/04-doctor.jpg)
 *Plant 134 street trees: day-mean walkway shade 8.5% to 18.3%. The answer is from Claude Sonnet 5.5 through Claude Code, with no API key. The checker marks any number Claude worked out itself instead of copying it from a tool.*
 
-Docs: [writeup](docs/WRITEUP.md), [3-minute video script](docs/VIDEO_SCRIPT.md), [demo and submission checklist](docs/DEMO_CHECKLIST.md).
+Docs: [writeup](docs/WRITEUP.md), [submission video, made by code](video/README.md), [3-minute video script](docs/VIDEO_SCRIPT.md), [demo and submission checklist](docs/DEMO_CHECKLIST.md).
 
 ## The problem
 

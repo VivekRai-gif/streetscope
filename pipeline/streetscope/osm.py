@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gzip
+import hashlib
 import json
 import time
 import urllib.error
@@ -15,6 +17,7 @@ MIRRORS = [
     "https://overpass.private.coffee/api/interpreter",
 ]
 USER_AGENT = "streetscope-hackathon/0.1 (student project; github.com/streetscope)"
+CACHE = Path(__file__).resolve().parents[2] / "web" / "data" / "_osm"   # answers already downloaded (gitignored)
 
 
 def build_query(lat: float, lon: float, radius: int, with_buildings: bool = True) -> str:
@@ -36,6 +39,9 @@ def fetch(lat: float, lon: float, radius: int = 300, with_buildings: bool = True
           tries: int = 3, pause: float = 6.0) -> list[dict]:
     """Ask Overpass for everything near a point. Tries several mirrors and backs off."""
     query = build_query(lat, lon, radius, with_buildings)
+    saved = CACHE / (hashlib.sha1(query.encode()).hexdigest()[:20] + ".json.gz")
+    if saved.exists():   # the same place and query was downloaded before; Overpass is often busy
+        return json.loads(gzip.decompress(saved.read_bytes()))
     body = urllib.parse.urlencode({"data": query}).encode()
     last: Exception | None = None
     for attempt in range(tries):
@@ -46,8 +52,11 @@ def fetch(lat: float, lon: float, radius: int = 300, with_buildings: bool = True
             )
             try:
                 with urllib.request.urlopen(req, timeout=150) as resp:
-                    return json.loads(resp.read().decode("utf-8")).get("elements", [])
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                    elements = json.loads(resp.read().decode("utf-8")).get("elements", [])
+                CACHE.mkdir(parents=True, exist_ok=True)
+                saved.write_bytes(gzip.compress(json.dumps(elements).encode("utf-8"), 6))
+                return elements
+            except (urllib.error.URLError, OSError, json.JSONDecodeError) as exc:
                 last = exc
         time.sleep(pause * (attempt + 1))
     raise RuntimeError(f"Overpass did not answer after {tries} rounds: {last}")

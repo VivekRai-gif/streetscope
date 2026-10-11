@@ -4,5 +4,6 @@
  {"id": "shibuya", "name": "Shibuya Crossing, Tokyo (level 3)", "twin": "shibuya/twin.json"},
  {"id": "times", "name": "Times Square, New York (level 1, LiDAR)", "twin": "times/twin.json"},
  {"id": "dupont", "name": "Dupont Circle, Washington DC (level 1, LiDAR)", "twin": "dupont/twin.json"},
- {"id": "mg_road", "name": "MG Road (level 3)", "twin": "mg_road/twin.json", "built": true}
+ {"id": "mg_road", "name": "MG Road, Bengaluru (level 3)", "twin": "mg_road/twin.json", "built": true},
+ {"id": "charminar", "name": "Charminar, Hyderabad (level 3)", "twin": "charminar/twin.json", "built": true}
 ]}

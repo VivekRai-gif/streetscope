@@ -54,7 +54,7 @@ def build_site(args: argparse.Namespace) -> Path:
         cache = out / "canopy.bin"
         try:
             n = shade.Grid(args.radius, 1.0).n
-            if cache.exists():
+            if cache.exists() and cache.stat().st_size == n * n:   # a cache from another radius is the wrong size
                 chm = np.frombuffer(cache.read_bytes(), dtype=np.uint8).reshape(n, n)
                 print("canopy map: using cached", cache)
             else:

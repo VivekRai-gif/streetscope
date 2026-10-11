@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Thumbnail</title>
+<style>
+  html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #03060a; font-family: Inter, 'Segoe UI', sans-serif }
+  .bg { position: absolute; inset: 0; background: url(build/thumb_bg.jpg) center / cover; filter: saturate(1.15) }
+  .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(3,6,10,.94) 0%, rgba(3,6,10,.78) 42%, rgba(3,6,10,.1) 75%) }
+  .txt { position: absolute; left: 64px; top: 120px; width: 640px }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 700; color: #fff }
+  .brand b { color: #22d3ee }
+  h1 { margin: 28px 0 0; font-size: 70px; line-height: 1.02; font-weight: 800; color: #fff; letter-spacing: -.02em }
+  h1 span { color: #fbbf24; text-shadow: 0 0 30px rgba(251,191,36,.45) }
+  .sub { margin-top: 24px; font-size: 25px; color: #cfe8f3 }
+  .pill { display: inline-block; margin-top: 30px; padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(34,211,238,.6); color: #a5f3fc;
+    font: 600 17px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .08em; background: rgba(6,20,28,.7) }
+</style></head>
+<body>
+  <div class="bg"></div><div class="shade"></div>
+  <div class="txt">
+    <div class="brand"><svg width="44" height="44" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs><path d="M16 3 28 10v12L16 29 4 22V10z" fill="none" stroke="url(#g)" stroke-width="1.8"/><path d="M16 9v14M10 12.5v8M22 12.5v8" stroke="url(#g)" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="9" r="2" fill="#34d399"/></svg><span>GreenCity<b>AI</b></span></div>
+    <h1>Only <span>4%</span> of the walkway is shaded at noon</h1>
+    <div class="sub">Connaught Place, New Delhi, 15 May.<br>A 3D digital twin from open data and Claude.</div>
+    <div class="pill">DELHI · HYDERABAD · HEAT &amp; WATER</div>
+  </div>
+</body></html>

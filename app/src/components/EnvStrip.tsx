@@ -19,7 +19,7 @@ export function EnvStrip({ site, w, hourIdx, setHourIdx }: { site: Site; w: Weat
           </div>
         ) : <div className="mt-2 text-[12px] text-dim">Weather service not reachable.</div>}
         <div className="hair my-2.5" />
-        <div className="flex items-center justify-between"><span className="label">Sun &amp; shade model</span><span className="chip b-computed">Computed</span></div>
+        <div className="flex items-center justify-between"><span className="label">Sun &amp; shade · {new Date(sh.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span><span className="chip b-computed">Computed</span></div>
         <div className="mt-1 flex items-center gap-2">
           <svg width={S} height={S / 2 + 14} viewBox={`0 0 ${S} ${S / 2 + 14}`} className="flex-none" role="img" aria-label="Walkway shade by hour">
             {sh.hours.map((h, k) => {

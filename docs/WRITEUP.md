@@ -23,7 +23,7 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 | Site | Data level | Shade finding | Traffic screen (simulated) |
 |---|---|---|---|
 | AIIMS junction, Delhi | 3 (open data) | OSM maps 0 trees; canopy map finds 369 tops, 24% cover. 134 street trees lift day-mean walkway shade 8.5% to 18.3%. | 10 links over assumed capacity. Top area scores 79.2 with no signal mapped; adding signal control cuts its load 10.7%. |
-| Connaught Place, Delhi | 3 | 321 canopy tree tops. Shade 18.9% to 26.2% with trees. | Middle Circle and Radial Road 2: a diversion cuts area load 14.8% and network delay 24%. |
+| Connaught Place, Delhi (500 m, sun of 15 May) | 3 | 212 buildings, 936 trees (900 canopy tops), 26.2% cover. At noon the sun is 79° high and only 4.1% of walkway is shaded. 200 street trees lift day-mean walkway shade 13.9% to 17.0%. | 20 links over assumed capacity. Middle Circle and Radial Road 2 at 1.57 times capacity; a diversion cuts it to 1.44 and network delay 9.2%. |
 | Shibuya, Tokyo | 3 | Dense and already 61% shaded; canopy map finds only 8 tree tops, which fits a concrete district. | 11 links over capacity; top area scores 99.1. |
 | Times Square, New York | 1 (LiDAR) | 91 of 102 building heights measured. | 7th Avenue and West 44th Street: signal retiming cuts area load 10.7%. |
 | Dupont Circle, Washington DC | 1 (LiDAR) | 143 of 162 heights measured, 489 tree tops. Shade 56.9% to 67.1% with trees. | The circle scores 98.4; diverting 15% of through trips cuts area load from 1.24 to 1.06 times capacity. |

@@ -1,0 +1,79 @@
+{
+ "voice": "en-IN-NeerjaExpressiveNeural",
+ "rate": "+8%",
+ "shots": [
+  {
+   "id": "s0_intro",
+   "chapter": null,
+   "text": "In a Delhi summer, shade decides whether a street can be walked. GreenCityAI finds the heat, street by street, and tests the fix before anyone builds it."
+  },
+  {
+   "id": "s1_twin",
+   "chapter": [
+    "01",
+    "A digital twin from open data",
+    "Connaught Place · New Delhi"
+   ],
+   "text": "This is Connaught Place, New Delhi, as a 3D digital twin built only from open data: 212 buildings from OpenStreetMap, 936 trees from a satellite canopy map on AWS Open Data, and the true sun for the fifteenth of May."
+  },
+  {
+   "id": "s2_heat",
+   "chapter": [
+    "02",
+    "Heat on every footpath",
+    "15 May · hourly sun"
+   ],
+   "text": "Every hour, we trace the sun onto every footpath. At 7 a.m., a third of the walkways are shaded. By noon, the sun is 79 degrees high, and only 4 percent are. The hex map shows where walkers have nowhere to hide."
+  },
+  {
+   "id": "s3_city",
+   "chapter": [
+    "03",
+    "The city around it",
+    "900 m of OpenStreetMap"
+   ],
+   "text": "Around it, we read a kilometre of the city: 658 buildings, 111 junctions, 27 bus stops. And every number wears a label: observed, computed, simulated or proposed."
+  },
+  {
+   "id": "s4_analyze",
+   "chapter": [
+    "04",
+    "Analyze a hot spot",
+    "Middle Circle × Radial Road 2"
+   ],
+   "text": "Pillars mark traffic hot spots from a peak-hour screening model. Analyze scans Middle Circle at Radial Road 2: one approach carries 1.57 times its assumed capacity, and at 3 p.m., 85 percent of nearby walkway is in direct sun."
+  },
+  {
+   "id": "s5_doctor",
+   "chapter": [
+    "05",
+    "AI street doctor",
+    "Claude Sonnet 5.5"
+   ],
+   "text": "Claude Sonnet 5.5 is the street doctor. It can only answer by calling our measuring tools, and a checker traces every number it writes back to a tool."
+  },
+  {
+   "id": "s6_simulate",
+   "chapter": [
+    "06",
+    "Test the fix",
+    "Current vs proposed"
+   ],
+   "text": "Then we test fixes. Diverting some trips cuts the load from 1.57 to 1.44 times capacity. 200 street trees lift day-long walkway shade from 13.9 to 17 percent. Costs are labelled assumed, not quotes."
+  },
+  {
+   "id": "s7_anywhere",
+   "chapter": [
+    "07",
+    "Anywhere in India",
+    "Search · build · analyse"
+   ],
+   "text": "It works anywhere in India. Search for Charminar in Hyderabad, and the city map appears at once. Press build, and in about half a minute, a new twin is ready, with its own shade and hot spots."
+  },
+  {
+   "id": "s8_outro",
+   "chapter": null,
+   "text": "GreenCityAI: open data in, cooler streets out. Built with AWS Open Data and Claude. The code is on GitHub."
+  }
+ ]
+}
