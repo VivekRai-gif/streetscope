@@ -20,3 +20,5 @@ web/data/_uploads/
 video/.venv/
 # twins built from uploaded surveys carry the survey owner's licence (not MIT)
 web/data/iit_gandhinagar_campus/
+# recorded voice-over audio (large)
+video/gemini/

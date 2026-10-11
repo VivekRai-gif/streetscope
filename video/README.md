@@ -5,12 +5,12 @@ The video is made by code, so every number on screen and in the voice-over comes
 | Step | Command (from the repo root) | What it does |
 |---|---|---|
 | 1 | `scripts\run_all.bat` (or `python scripts/serve.py` and `python scripts/dev_api.py`) | Web app on 8765, doctor and twin builder on 8766 |
-| 2 | `video\.venv\Scripts\python.exe video\tts_veena.py` | Voice-over from `video/narration.json` with **Veena** (Maya Research, Apache 2.0), an open Indian English and Hindi voice model, run locally on the GPU. Indian place names sound the way people in India say them. Each sentence is spoken, then Whisper listens back: a take is kept only when it says every word and stays in the chosen voice (pitch check), otherwise it is spoken again (best of 8). Word timings come from forced alignment (torchaudio MMS_FA). |
+| 2 | `video\.venv\Scripts\python.exe video\import_voice.py "video\gemini\<file>.wav"` | The voice-over. We read the spoken side of `video/narration.json` with **Gemini 3.8 Flash TTS** in Google AI Studio (12 speech blocks, one per shot, an Indian English narrator persona) and saved one WAV in `video/gemini/`. The importer finds every word with forced alignment (torchaudio MMS_FA), cuts the shots in the silences, writes word timings for captions and on-screen cues, and has Whisper listen to each shot as a check. Without a recording, `tts_veena.py` (open Veena model, local GPU) or `tts.py` (Edge voices) make the voice instead. |
 | 3 | `python video/music.py` | Synthesised ambient music, a UI click and a whoosh (no licences needed) |
 | 4 | `cd video` then `node shots.mjs` | Drives the real app in headless Chrome on the GPU and records each shot frame by frame at 30 fps |
 | 5 | `python video/edit.py` | Crossfades, word-timed captions, voice, ducked music and clicks. Writes `video/out/GreenCityAI_submission.mp4` and `.srt` |
 
-Voice setup (once, about 10 GB): `cd video`, `uv venv .venv --python 3.11`, then
+Local voice setup (once, about 10 GB; also needed by the importer for alignment and Whisper): `cd video`, `uv venv .venv --python 3.11`, then
 `uv pip install --python .venv/Scripts/python.exe torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124` and
 `uv pip install --python .venv/Scripts/python.exe "transformers>=4.46,<4.56" accelerate snac bitsandbytes soundfile num2words`.
 In `narration.json`, `{1.57|one point five seven}` shows "1.57" in the captions and says the words. The speaker is `maitri`:

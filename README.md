@@ -195,7 +195,7 @@ While building: add your own honest list here before submitting, as the hackatho
 
 ```
 app/        GreenCityAI: React + TypeScript + Cesium app (builds into web/app)
-video/      the submission video, made by code (recorder, Veena voice, edit)
+video/      the submission video, made by code (recorder, Gemini TTS voice import or local Veena voice, edit)
 pipeline/   Twin Builder: geo, osm, twin, shade, canopy, lidar, cloud (your own scans), points, scenarios, traffic, cli + tests
 agent/      Claude doctor (Claude Code, API or Bedrock), MCP tool server, tools, number verifier, Lambda handler + tests
 web/        viewer, gaussian splat renderer (gs.js), real 3D page, simulator demo, sample twins (data/)

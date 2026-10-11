@@ -55,7 +55,7 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 - AWS SAM template: S3 and CloudFront for the site, Lambda with a Function URL for the doctor.
 - three.js, CesiumJS, numpy, scipy, laspy, rasterio, pyproj. Map data (c) OpenStreetMap contributors, ODbL.
 - Drone survey shown in the video: IIT Gandhinagar campus, Misra, Khanna et al. (2024), Mendeley Data, doi:10.17632/nmxysw8ybx.1, CC BY-NC 3.0.
-- Video voice: Veena (Maya Research, Apache 2.0), an open Indian English model run locally; Whisper checks every sentence.
+- Video voice: Gemini 3.8 Flash TTS (Google AI Studio), recorded from our script and lined up word by word with forced alignment; Whisper checks every chapter.
 
 ## AI tools used
 

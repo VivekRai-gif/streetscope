@@ -100,7 +100,8 @@ def lines(wt: list) -> list[list]:
 def captions(shots) -> list[list]:
     caps = []
     for m in shots:
-        seg = lambda t: next((k for k, v in enumerate(m["voice"]) if v["from"] - 1e-6 <= t <= v["to"] + 1e-6), -1)
+        # a word that starts exactly where the voice was split belongs to the part after the split
+        seg = lambda t: max((k for k, v in enumerate(m["voice"]) if v["from"] - 1e-6 <= t <= v["to"] + 1e-6), default=-1)
         for ln in lines(word_times(m["tts"])):
             groups = []
             for w in ln:   # a line never spans a pause in the voice
