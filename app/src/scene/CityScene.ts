@@ -50,6 +50,7 @@ export class CityScene {
   private walkers: Particle[] = []
   private mul = new Map<number, number>()
   private orbit: { c: Cesium.Cartesian3; h: number; p: number; r: number } | null = null
+  orbitSpeed = .05   // radians per second while orbiting
   private last = performance.now()
   private frameT = performance.now()
   private shadeHour = 0
@@ -641,7 +642,7 @@ export class CityScene {
       if (mat) mat.uniforms.color = q.col.withAlpha(.32 * (1 - f))
     }
     if (this.orbit && !this.reduced) {
-      this.orbit.h += dt * .05
+      this.orbit.h += dt * this.orbitSpeed
       this.viewer.camera.lookAt(this.orbit.c, new Cesium.HeadingPitchRange(this.orbit.h, this.orbit.p, this.orbit.r))
     }
     if (now - this.camT > 150) {

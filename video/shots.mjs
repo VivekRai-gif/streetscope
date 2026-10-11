@@ -114,6 +114,29 @@ async function setHour(shot, k, sec = 1.2) {
   if (v !== k) await rec.eval(`(() => { const el = document.querySelector('input.hour'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${k}); el.dispatchEvent(new Event('input', { bubbles: true })) })()`)
 }
 
+/* Google 3D tiles on or off, between recorded frames. Page time runs while the overlays rebuild (they are built in
+   timed chunks) and the tiles stream in; the camera is put back exactly where it was, so the next frame matches. */
+async function tiles(rec, on, settle = 6) {
+  await rec.eval(`(() => { const c = __gc.viewer.camera; __gc.stopOrbit(); window.__camSave = { p: c.position.clone(), h: c.heading, t: c.pitch, r: c.roll } })()`)
+  await rec.eval(`window.__tdone = false; __gc.setTiles(${on ? "localStorage.getItem('gkey') || ''" : "''"}).then(() => { window.__tdone = true }); 0`)
+  await rec.eval(`__vt.setFree(true)`)
+  const t0 = Date.now()
+  while (!(await rec.eval(`!!window.__tdone`)) && Date.now() - t0 < 90000) await sleep(250)
+  await sleep(settle * 1000)
+  await rec.eval(`(() => { const s = window.__camSave; __gc.stopOrbit(); __gc.viewer.camera.cancelFlight(); __gc.viewer.camera.setView({ destination: s.p, orientation: { heading: s.h, pitch: s.t, roll: s.r } }) })()`)
+  await rec.eval(`__vt.setFree(false)`)
+  await rec.warmUntil('', .6)
+}
+/* crossfade inside a shot: freeze the last frame on top, switch under it, then fade the frozen frame away */
+async function crossTo(rec, on, sec = 1.1) {
+  const r = await rec.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 })
+  await rec.eval(`(() => { const i = document.createElement('img'); i.id = '__xf'; i.src = 'data:image/jpeg;base64,${r.result.data}'
+    Object.assign(i.style, { position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 2147483000, pointerEvents: 'none' }); document.body.appendChild(i) })()`)
+  await tiles(rec, on)
+  await rec.hold(sec, k => rec.eval(`document.getElementById('__xf').style.opacity = ${(1 - (k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2)).toFixed(3)}`))
+  await rec.eval(`document.getElementById('__xf')?.remove()`)
+}
+
 /* ---------------------------------------------------------------- shots */
 const SHOTS = {
   async s0_intro(sh, rec) {
@@ -136,7 +159,10 @@ const SHOTS = {
     await rec.hold(.9, (k) => rec.eval(`__ui(${Math.min(1, k * 1.05)})`))
     await rec.eval(`__ui(1); __ov.chapter('01', 'A digital twin from open data', 'Connaught Place · New Delhi')`)
     const X = 1196
-    await sh.at('the tiles are only', -.1)
+    await sh.at("and on google's", -.2)
+    await crossTo(rec, true)
+    await rec.eval(`__gc.fly(0, 0, 1250, __gc.viewer.camera.heading + 0.35, -0.6, true, 9)`)
+    await sh.at('which are only', -.1)
     if (await rec.eval(`!!__gc.tilesOn`)) await rec.eval(`__ov.callout('g', ${X}, 92, '3D base · display only', 'Google Photorealistic 3D Tiles', 'never measured: every number comes from the twin', 'cyan')`)
     await sh.at('212 buildings', -.15)
     await rec.eval(`__ov.off('g')`)
@@ -152,6 +178,7 @@ const SHOTS = {
   },
 
   async s2_heat(sh, rec) {
+    await tiles(rec, false, 3)
     await rec.start(`${CLIPS}/${sh.id}.mp4`)
     await rec.eval(`__ov.chapter('02', 'Heat on every footpath', '15 May · hourly sun')`)
     await rec.eval(`__gc.fly(20, -40, 640, 1.35, -0.74, true, 3.6)`)
@@ -196,6 +223,7 @@ const SHOTS = {
 
   async s4_analyze(sh, rec) {
     await rec.eval(`__gc.setLayer('transit', false); __gc.setLayer('hexmap', false)`)
+    await tiles(rec, true, 8)
     await rec.start(`${CLIPS}/${sh.id}.mp4`)
     await rec.eval(`__ov.chapter('04', 'Overloaded roads', 'Simulated peak hour · Middle Circle × Radial Road 2')`)
     await rec.eval(`__gc.fly(40, -10, 1150, 2.75, -0.82, false, 3.0)`)
@@ -266,16 +294,16 @@ const SHOTS = {
 
   async s7_anywhere(sh, rec) {
     await rec.start(`${CLIPS}/${sh.id}.mp4`)
-    await rec.eval(`__ov.chapter('07', 'Anywhere in India', 'Search · build · analyse')`)
+    await rec.eval(`__ov.chapter('07', 'Anywhere on Earth', 'Marina Bay Sands · Singapore')`)
     await sh.click('button[role=tab]', 'explore', .6)
     await sh.at('search for', -.5)
     await sh.click('input[aria-label="Search location"]', null, .6)
-    await rec.type('Charminar', 13)
+    await rec.type('Marina Bay Sands', 13)
     await rec.eval(`__ov.chapterOff()`)
-    const found = await rec.holdUntil(`[...document.querySelectorAll('button')].some(b => b.textContent.includes('Charminar Circle'))`, 15)
+    const found = await rec.holdUntil(`[...document.querySelectorAll('button')].some(b => /Marina Bay Sands.*Singapore/.test(b.textContent))`, 15)
     if (!found) throw new Error('place search returned nothing')
     await rec.hold(.3)
-    await sh.click('button', 'charminar circle', .6)
+    await rec.click('button', 'marina bay sands, 10', .6).catch(() => rec.click('button', 'marina bay sands', .6)); sh.clicks.push(rec.t - 2 / FPS)
     sh.holdVoice('and the city map', rec.t + 2.4)   // the camera flies across India first
     await sh.at('press build', -.35)
     await rec.holdUntil(`document.body.innerText.includes('Build a twin here') && !document.body.innerText.includes('Loading map detail')`, 20)
@@ -296,8 +324,9 @@ const SHOTS = {
     await rec.eval(`__ov.off('tl'); __vt.setFree(false)`)
     sh.holdVoice('and in under', rec.t + .15)
     sh.timelapse = [tl0, rec.t]
-    await rec.eval(`__gc.fly(0, 0, 1250, 0.7, -0.62, true, 3.2)`)
-    await sh.finish(.6)
+    await rec.eval(`__gc.orbitSpeed = .16; __gc.fly(0, 0, 1150, 0.75, -0.34, true, 3.0)`)
+    await sh.finish(3.2)
+    await rec.eval(`__gc.orbitSpeed = .05`)
   },
 
   async s8_drone(sh, rec) {
@@ -349,10 +378,13 @@ const SHOTS = {
     await rec.eval(`__ov.callout('cr', 1196, 92, 'Drone survey · photogrammetry', '12.6 M points', 'Drone survey: IIT Gandhinagar students, 2024 · CC BY-NC 3.0 · doi:10.17632/nmxysw8ybx.1', 'cyan')`)
     await rec.hold(1.2)
     await rec.eval(`__ov.chapterOff()`)
-    await sh.at('or by class', -.4)
+    await sh.at('by class', -.4)
     await rec.eval(`__ov.off('cr')`)
-    await sh.click('[data-testid=pc-panel] button', 'class', .5)
-    await sh.at('ground roofs', -.2)
+    await sh.click('[data-testid=pc-panel] button', 'class', .45)
+    await sh.at('or by height', -.3)
+    await sh.click('[data-testid=pc-panel] button', 'height', .45)
+    await sh.at('ground roofs', -.4)
+    await sh.click('[data-testid=pc-panel] button', 'class', .45)
     await ringJs(rec, 'cls', `document.querySelector('[data-testid=pc-panel] .mt-2:has(> button)')`, 5)
     await rec.eval(`__pc.fly([-10, 120, 210], [-165, 8, 60], 4.2)`)
     await sh.until(sh.len - .4)
@@ -370,6 +402,34 @@ const SHOTS = {
     await rec.hold(1.4)
     await rec.eval(`__ov.chapterOff(); __ov.callout('g', 1196, 92, 'Real 3D gaussian splatting', '2.0 M splats', 'one per measured point · not trained from photos', 'cyan')`)
     await sh.until(sh.len - .4)
+    await rec.eval(`__ov.off('g')`)
+    await sh.finish()
+  },
+
+  async s10b_nyc(sh, rec) {
+    await rec.goto(APP + '?site=times&cloud=1', `!!window.__pc && !!document.querySelector('[data-testid=pc-panel]')`, 120000)
+    await rec.eval(STYLE)
+    await rec.eval(`(() => { const st = document.createElement('style'); st.textContent = 'div[class*="top-[70px]"][class*="pointer-events-none"] { display: none !important }'; document.head.appendChild(st) })()`)   // the map-loading note sits behind the point view
+    await rec.eval(`__vt.setFree(true)`)
+    await rec.waitFor(`!/Building [0-9,]+ map features/.test(document.body.innerText)`, 90000).catch(() => {})
+    await rec.settle(2500)
+    await rec.eval(`(() => { const R = __pc.radius; __pc.cam.position.set(340, 320, 320); __pc.ctl.target.set(0, 90, 0) })()`)
+    await rec.warmUntil('', 1.5)
+    await rec.start(`${CLIPS}/${sh.id}.mp4`)
+    await rec.eval(`__ov.chapter('11', 'New York · Times Square', 'USGS airborne LiDAR · gaussian splats'); __pc.replay(); (() => { const R = __pc.radius; __pc.fly([130, 280, 400], [0, 90, 0], 6) })()`)
+    await rec.hold(.8)
+    await rec.eval(`__ov.callout('l', 1196, 92, 'USGS 3D Elevation Program · public domain', '403,857 LiDAR points', 'airborne survey, read from AWS Open Data', 'cyan')`)
+    await sh.at('lidar', -.1)
+    await sh.click('[data-testid=pc-panel] button', 'height', .5)
+    await rec.eval(`__ov.chapterOff()`)
+    await sh.at('and draws', -.6)
+    await rec.eval(`__ov.off('l')`)
+    await sh.click('[data-testid=pc-panel] button', 'gaussian splats', .5)
+    await rec.holdUntil(`!!window.__pc?.gsr`, 20)
+    await rec.eval(`__ov.hideCursor(); __pc.replay(); (() => { const R = __pc.radius; __pc.fly([-330, 280, 320], [0, 100, 0], 6) })()`)
+    await rec.hold(.6)
+    await rec.eval(`__ov.callout('g', 1196, 92, 'Generated from open map data', 'Gaussian twin', 'real 3DGS rendering · not measured, not trained', 'green')`)
+    await sh.until(sh.len - .3)
     await rec.eval(`__ov.off('g')`)
     await sh.finish()
   },
@@ -416,6 +476,7 @@ try {
   await rec.eval(STYLE)
   await rec.eval(`__gc.viewer.useBrowserRecommendedResolution = false; __gc.setQuality('high')`)
   await rec.settle(4000)
+  if (!only.length || only[0] === 's0_intro') await tiles(rec, false, 3)   // the video opens on our dark map
   fs.mkdirSync(CLIPS, { recursive: true })
   if (only.length && !only.includes('s2_heat')) {   // match the full take's layer state (hex map on, shown again on the next site)
     await rec.eval(`(() => { const b = t => [...document.querySelectorAll('button')].find(x => x.textContent.toLowerCase().includes(t)); b('layers').click(); setTimeout(() => { b('sun-exposure hex map').click(); b('layers').click() }, 0) })()`)

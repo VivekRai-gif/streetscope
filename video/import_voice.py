@@ -58,7 +58,9 @@ def emissions(model, wav16: torch.Tensor, win: float = 20.0, edge: float = 1.5) 
 
 def main() -> None:
     cfg = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
-    files = sys.argv[1:]
+    args = sys.argv[1:]
+    only = args[args.index("--only") + 1].split(",") if "--only" in args else None   # re-record just some shots
+    files = [a for i, a in enumerate(args) if a != "--only" and (i == 0 or args[i - 1] != "--only")]
     if not files:
         raise SystemExit("give the recorded audio file(s)")
     audio, sr = load(files)
@@ -69,7 +71,7 @@ def main() -> None:
     em = emissions(model, wav16)
     sec_per_frame = wav16.shape[1] / em.shape[1] / SR
 
-    shots = [(s["id"], parse(s["text"])) for s in cfg["shots"]]
+    shots = [(s["id"], parse(s["text"])) for s in cfg["shots"] if not only or s["id"] in only]
     words = [w for _, toks in shots for _, ws in toks for w in ws]
     clean = [norm(w).replace(" ", "") or "a" for w in words]
     spans = aligner(em[0], tok(clean))

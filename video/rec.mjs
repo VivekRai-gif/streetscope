@@ -188,6 +188,16 @@ class Rec {
     if (!this.ff.stdin.write(buf)) await new Promise(res => this.ff.stdin.once('drain', res))
     this.frames++
   }
+  /* real time passes but page time does not: the page keeps drawing (tiles stream in), nothing is recorded */
+  async warmUntil(expr, minSec = 0, maxSec = 60) {
+    const t0 = Date.now()
+    for (;;) {
+      await this.eval(`__vt.frame(0)`)
+      const el = (Date.now() - t0) / 1000
+      if (el >= minSec && (!expr || await this.eval(`(() => { try { return !!(${expr}) } catch (e) { return false } })()`))) return true
+      if (el > maxSec) return false
+    }
+  }
   async hold(sec, each) { const n = Math.round(sec * FPS); for (let i = 0; i < n; i++) { if (each) await each(i / n, i); await this.frame() } }
   /* record until a condition holds in the page (for things that take real time, such as a fetch) */
   async holdUntil(expr, maxSec = 20) { const n = maxSec * FPS; for (let i = 0; i < n; i++) { if (await this.eval(`(() => { try { return !!(${expr}) } catch (e) { return false } })()`)) return true; await this.frame() } return false }
