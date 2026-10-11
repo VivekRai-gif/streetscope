@@ -69,8 +69,9 @@ class Shot {
   }
   async until(t) { while (this.rec.t < t) await this.rec.frame() }
   async at(phrase, off = 0) { await this.until(this.cue(phrase) + off) }
-  async click(sel, text, sec = .65) { await this.rec.click(sel, text, sec); this.clicks.push(this.rec.t - 1 / FPS) }
-  async clickAt(x, y, sec = .65) { await this.rec.clickAt(x, y, sec); this.clicks.push(this.rec.t - 1 / FPS) }
+  // the press shows in the frame two frames back (press, frame, release, frame), so the sound goes there
+  async click(sel, text, sec = .65) { await this.rec.click(sel, text, sec); this.clicks.push(this.rec.t - 2 / FPS) }
+  async clickAt(x, y, sec = .65) { await this.rec.clickAt(x, y, sec); this.clicks.push(this.rec.t - 2 / FPS) }
   /* let the voice from `phrase` on start no earlier than clip time t (the picture needs a moment) */
   holdVoice(phrase, t) {
     const planned = this.cue(phrase), audioT = planned - this.extra - this.lead
@@ -123,7 +124,7 @@ const SHOTS = {
     await rec.hold(.3)
     await rec.eval(`__card(${JSON.stringify(`<div class="in"><div class="brand up">${LOGO}<div class="name">GreenCity<b>AI</b></div></div>
       <div class="tag up" style="animation-delay:.35s">A 3D digital twin that finds the heat on every street, and tests the fix.</div>
-      <div class="line"></div><div class="mono up" style="animation-delay:.9s">Heat &amp; Water · WeMakeDevs × AWS Environmental Hacks</div></div>`)}, true)`)
+      <div class="line"></div></div>`)}, true)`)
     await sh.until(sh.len - 1.1)
     await rec.eval(`__card(null, false)`)
     await sh.finish()
@@ -135,7 +136,10 @@ const SHOTS = {
     await rec.hold(.9, (k) => rec.eval(`__ui(${Math.min(1, k * 1.05)})`))
     await rec.eval(`__ui(1); __ov.chapter('01', 'A digital twin from open data', 'Connaught Place · New Delhi')`)
     const X = 1196
+    await sh.at('the tiles are only', -.1)
+    if (await rec.eval(`!!__gc.tilesOn`)) await rec.eval(`__ov.callout('g', ${X}, 92, '3D base · display only', 'Google Photorealistic 3D Tiles', 'never measured: every number comes from the twin', 'cyan')`)
     await sh.at('212 buildings', -.15)
+    await rec.eval(`__ov.off('g')`)
     await rec.eval(`__ov.callout('a', ${X}, 92, 'OpenStreetMap · observed', '212 buildings', 'roads, crossings, signals, bus stops', 'cyan')`)
     await sh.at('936 trees', -.15)
     await rec.eval(`__ov.callout('b', ${X}, 184, 'Canopy map · AWS Open Data', '936 trees', 'Meta + WRI 1 m canopy height · 26.2% cover', 'green')`)
@@ -193,14 +197,17 @@ const SHOTS = {
   async s4_analyze(sh, rec) {
     await rec.eval(`__gc.setLayer('transit', false); __gc.setLayer('hexmap', false)`)
     await rec.start(`${CLIPS}/${sh.id}.mp4`)
-    await rec.eval(`__ov.chapter('04', 'Analyze a hot spot', 'Middle Circle × Radial Road 2')`)
-    await rec.eval(`__gc.fly(85, -36, 560, 2.9, -0.62, false, 2.6)`)
-    await rec.hold(2.7)
+    await rec.eval(`__ov.chapter('04', 'Overloaded roads', 'Simulated peak hour · Middle Circle × Radial Road 2')`)
+    await rec.eval(`__gc.fly(40, -10, 1150, 2.75, -0.82, false, 3.0)`)
+    await sh.at('20 road links', -.2)
+    await rec.eval(`__ov.chapterOff(); __ov.callout('ov', 1196, 92, 'Simulated peak hour · assumed demand', '20 links over capacity', 'drawn thick and red · worst 1.87× capacity', '')`)
+    await sh.at('analyze scans', -1.7)
+    await rec.eval(`__ov.off('ov'); __gc.fly(85, -36, 560, 2.9, -0.62, false, 1.5)`)
+    await rec.hold(1.6)
     const p = await screenOf(rec, 85.4, -36.5, 2)
-    await sh.clickAt(p[0], p[1], .8)
-    await rec.eval(`__ov.chapterOff()`)
-    await rec.hold(.6)
-    await sh.click('button', 'analyze area', .7)
+    await sh.clickAt(p[0], p[1], .7)
+    await rec.hold(.4)
+    await sh.click('button', 'analyze area', .6)
     await sh.at('1.57', -.25)
     await ringJs(rec, 'f1', `[...document.querySelectorAll('button')].find(b => b.textContent.includes('Approach over capacity'))`, 2)
     await sh.at('85 percent', -.35)
@@ -376,10 +383,21 @@ const SHOTS = {
       <div class="tag up" style="animation-delay:.3s">Open data and drone scans in. Cooler streets out.</div><div class="line"></div>
       <div class="chips up" style="animation-delay:.7s"><span class="chip"><i>data</i>OpenStreetMap (ODbL)</span><span class="chip"><i>data</i>Meta + WRI canopy height · AWS Open Data</span><span class="chip"><i>data</i>IIT Gandhinagar drone survey (CC BY-NC 3.0)</span><span class="chip"><i>data</i>NOAA sun · Open-Meteo weather</span></div>
       <div class="chips up" style="animation-delay:1.0s"><span class="chip"><i>engine</i>Python twin pipeline · LAS/LAZ/PLY</span><span class="chip"><i>3D</i>CesiumJS · React · own WebGL2 gaussian splats</span><span class="chip"><i>AI</i>Claude Sonnet 5.5 · Claude Code or Amazon Bedrock</span><span class="chip"><i>voice</i>Gemini 3.8 Flash TTS</span></div>
-      <div class="repo up" style="animation-delay:1.5s">github.com/yshail/streetscope</div>
+      <div class="repo up" style="animation-delay:1.5s">greencityai.shaileshyadav.in</div>
+      <div class="fine up" style="animation-delay:1.7s">Code: github.com/yshail/streetscope</div>
       <div class="fine up" style="animation-delay:1.9s">Traffic is simulated from assumed demand. Costs are assumptions, not quotes.</div></div>`)}, true)`)
     await sh.finish(2.2)
   },
+}
+
+/* Google Photorealistic 3D Tiles key (Google Maps key or Cesium ion token): video/.env "gkey=..." or video/gkey.txt.
+   Both are git-ignored. The key is only put in the headless browser's storage, never printed. */
+function readKey() {
+  if (fs.existsSync('.env')) {
+    const m = fs.readFileSync('.env', 'utf8').match(/^\s*gkey\s*=\s*["']?([^"'\r\n]+)/im)
+    if (m) return m[1].trim()
+  }
+  return fs.existsSync('gkey.txt') ? fs.readFileSync('gkey.txt', 'utf8').trim() : ''
 }
 
 /* ---------------------------------------------------------------- run */
@@ -391,6 +409,9 @@ rec.snap = async function () {
   this.frames++
 }
 try {
+  const GKEY = readKey()
+  if (GKEY) await rec.send('Page.addScriptToEvaluateOnNewDocument', { source: `try { localStorage.setItem('gkey', ${JSON.stringify(GKEY)}) } catch (e) {}` })
+  console.log(GKEY ? 'Google Photorealistic 3D Tiles: on' : 'Google tiles: no video/gkey.txt, dark open-data city')
   await rec.goto(APP + '?site=' + (process.env.START_SITE || 'connaught'), `window.__gc && document.body.innerText.includes('AREA INTELLIGENCE')`)
   await rec.eval(STYLE)
   await rec.eval(`__gc.viewer.useBrowserRecommendedResolution = false; __gc.setQuality('high')`)

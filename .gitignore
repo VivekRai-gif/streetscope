@@ -22,3 +22,5 @@ video/.venv/
 web/data/iit_gandhinagar_campus/
 # recorded voice-over audio (large)
 video/gemini/
+# Google Map Tiles key for recording the video (never commit)
+video/gkey.txt

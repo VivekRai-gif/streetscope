@@ -59,7 +59,7 @@ const OVERLAY = `(() => {
   .__rip{position:fixed;z-index:2147483646;pointer-events:none;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:2px solid #67e8f9;box-shadow:0 0 18px #22d3ee;animation:__rip .65s ease-out forwards}
   @keyframes __rip{from{transform:scale(.25);opacity:1}to{transform:scale(1.6);opacity:0}}
   #__chap{position:fixed;left:50%;top:76px;z-index:2147483640;pointer-events:none;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
-    padding:9px 18px 9px 10px;border-radius:999px;background:rgba(6,12,20,.78);backdrop-filter:blur(14px);border:1px solid rgba(103,232,249,.35);
+    padding:9px 18px;border-radius:999px;background:rgba(6,12,20,.78);backdrop-filter:blur(14px);border:1px solid rgba(103,232,249,.35);
     box-shadow:0 0 0 1px rgba(255,255,255,.03),0 10px 40px rgba(0,0,0,.45),0 0 28px rgba(34,211,238,.18);font-family:Inter,'Segoe UI',sans-serif;opacity:0}
   #__chap.on{animation:__chin .7s cubic-bezier(.2,.8,.2,1) forwards}
   #__chap.off{animation:__chout .45s ease-in forwards}
@@ -94,7 +94,7 @@ const OVERLAY = `(() => {
     cursor(x, y) { cx = x; cy = y; put() },
     hideCursor() { cx = -100; cy = -100; put() },
     ripple(x, y) { const r = document.createElement('div'); r.className = '__rip'; r.style.left = x + 'px'; r.style.top = y + 'px'; document.body.appendChild(r); setTimeout(() => r.remove(), 900) },
-    chapter(n, title, sub) { chap.innerHTML = '<b>' + n + '</b><span>' + title + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); chap.className = ''; void chap.offsetWidth; chap.className = 'on' },
+    chapter(n, title, sub) { chap.innerHTML = '<span>' + title + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); chap.className = ''; void chap.offsetWidth; chap.className = 'on' },
     chapterOff() { chap.className = 'off' },
     callout(id, x, y, k, v, s, tone) {
       let el = document.getElementById('__c_' + id); if (el) el.remove()

@@ -15,6 +15,7 @@ OUT = HERE / "out"
 NARR = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
 FADE = {"s1_twin": 0.04, "s9_points": 0.04, "s10_splats": 0.04, "s11_outro": 0.04}   # continuous camera: a straight cut. Everything else crossfades.
 XF = 0.5
+WHOOSH_PEAK = 0.455   # seconds from the start of whoosh.wav to its loudest point (music.py)
 TOP_CAPTIONS = {"s6_simulate", "s7_anywhere", "s8_drone"}    # panels sit at the bottom in these shots
 
 
@@ -191,7 +192,7 @@ def main() -> None:
     inputs += ["-i", str(B / "audio" / "whoosh.wav")]
     wh_i = a_idx
     a_idx += 1
-    whs = [max(0, m["start"] - .45) for m in shots[1:] if m["xf"] > .1]
+    whs = [max(0, m["start"] + m["xf"] / 2 - WHOOSH_PEAK) for m in shots[1:] if m["xf"] > .1]   # loudest at the middle of the crossfade
     fc.append(f"[{wh_i}:a]asplit={len(whs)}" + "".join(f"[wh{k}]" for k in range(len(whs))))
     for k, w in enumerate(whs):
         ms = int(round(w * 1000))
