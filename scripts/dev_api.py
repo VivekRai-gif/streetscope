@@ -3,6 +3,7 @@
 POST /ask        {"site":"aiims","question":"..."}            the doctor (Claude Sonnet 5.5, or offline answers)
 GET  /status                                                  which model answers
 POST /build      {"lat":..,"lon":..,"radius":500,"name":".."}  build a twin for any place (background job)
+POST /upload     raw LAS/LAZ/PLY body, headers x-filename, x-name  build a twin from your own drone or LiDAR survey
 GET  /build/<id>                                              progress of that job
 GET  /context?lat=..&lon=..&r=900                             map context (OpenStreetMap), cached on disk
 
@@ -28,7 +29,7 @@ from urllib.parse import parse_qs, urlparse  # noqa: E402
 class H(BaseHTTPRequestHandler):
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "content-type, x-ask-token")
+        self.send_header("Access-Control-Allow-Headers", "content-type, x-ask-token, x-filename, x-name, x-epsg, x-label, x-licence")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
     def _json(self, code: int, body):
@@ -65,6 +66,8 @@ class H(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path == "/upload":
+            return self._upload()
         body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode("utf-8")
         if self.path == "/ask":
             res = lambda_handler({"body": body, "headers": dict(self.headers)})
@@ -78,6 +81,39 @@ class H(BaseHTTPRequestHandler):
             except (KeyError, ValueError) as exc:
                 return self._json(400, {"error": str(exc)})
         self._json(404, {"error": "not found"})
+
+    def _upload(self):
+        """Stream an uploaded survey to web/data/_uploads, then build a twin from it."""
+        import re
+        import uuid
+        from urllib.parse import unquote
+
+        n = int(self.headers.get("Content-Length", 0))
+        fname = unquote(self.headers.get("x-filename", "survey.laz"))
+        ext = Path(fname).suffix.lower()
+        if ext not in (".las", ".laz", ".ply"):
+            self.rfile.read(n)
+            return self._json(400, {"error": "use a LAS, LAZ or PLY file"})
+        if not 0 < n <= 4 * 1024 ** 3:
+            return self._json(400, {"error": "the file must be under 4 GB"})
+        up = ROOT / "web" / "data" / "_uploads"
+        up.mkdir(parents=True, exist_ok=True)
+        dest = up / f"{uuid.uuid4().hex[:8]}_{re.sub(r'[^A-Za-z0-9._-]+', '_', Path(fname).stem)[:40]}{ext}"
+        with dest.open("wb") as f:
+            left = n
+            while left:
+                chunk = self.rfile.read(min(left, 4 << 20))
+                if not chunk:
+                    break
+                f.write(chunk)
+                left -= len(chunk)
+        try:
+            epsg = int(self.headers["x-epsg"]) if self.headers.get("x-epsg") else None
+            job = builder.start_cloud(dest, unquote(self.headers.get("x-name") or Path(fname).stem)[:60], epsg,
+                                      unquote(self.headers.get("x-label", ""))[:120], unquote(self.headers.get("x-licence", ""))[:80])
+            return self._json(200, job)
+        except Exception as exc:
+            return self._json(400, {"error": str(exc)})
 
     def log_message(self, *a):
         pass

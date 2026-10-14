@@ -49,6 +49,7 @@ const BASE = API.replace(/\/ask$/, '')
 export interface BuildJob {
   id: string; site: string; name: string; state: 'running' | 'done' | 'error'; pct: number; step: string
   error: string | null; elapsed_s: number; last: string; radius: number
+  lat?: number; lon?: number; survey?: { points: number; epsg: number; width_m: number; height_m: number }
 }
 
 export async function startBuild(p: { lat: number; lon: number; name: string; radius: number; tz: number }): Promise<BuildJob> {
@@ -56,6 +57,24 @@ export async function startBuild(p: { lat: number; lon: number; name: string; ra
   const j = await r.json()
   if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status)
   return j
+}
+
+/* Your own drone or LiDAR survey (LAS, LAZ or PLY): the builder reads where it is from the file and builds a twin there */
+export function uploadSurvey(file: File, name: string, onProgress: (f: number) => void): Promise<BuildJob> {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest()
+    x.open('POST', BASE + '/upload')
+    x.setRequestHeader('x-filename', encodeURIComponent(file.name))
+    x.setRequestHeader('x-name', encodeURIComponent(name))
+    x.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
+    x.onload = () => {
+      let j: { error?: string } = {}
+      try { j = JSON.parse(x.responseText) } catch { /* not JSON */ }
+      if (x.status === 200) resolve(j as BuildJob); else reject(new Error(j.error || 'HTTP ' + x.status))
+    }
+    x.onerror = () => reject(new Error('The builder is not running. Start it with: python scripts/dev_api.py'))
+    x.send(file)
+  })
 }
 
 export async function buildStatus(id: string): Promise<BuildJob> {

@@ -17,13 +17,15 @@ Built for the WeMakeDevs x AWS *Environmental Hacks* (Heat and Water track), Oct
 | **Analyze** | *Analyze Area* sweeps a scan across the junction, lights up roads, trees, stops and crossings in turn, then pins three findings to their places on the map. Each finding and intervention says whether it is observed, computed, simulated or hypothetical. *Explain with Claude* asks the doctor through your Claude Code login. |
 | **Simulate** | Before / Proposed. The proposals appear in a wave from the junction: a diversion route with travel times, signal control, a bus lane, an overbridge, street trees, a protected crossing, EV charger candidates. A strip compares peak load, peak speed, network delay, walkway shade, crown cover, crossings and assumed cost. |
 | **Compare** | Every intervention on one chart: simulated effect against assumed cost. Click one to preview it in 3D. |
-| **Point cloud** | Real USGS LiDAR (919,091 points at Dupont Circle, 403,857 at Times Square), coloured by class or height, with class toggles, point picking and a distance tool. Sites without LiDAR show the gaussian twin, labelled as generated. |
+| **Point cloud** | Measured survey points: USGS LiDAR (919,091 points at Dupont Circle, 403,857 at Times Square) or your own drone scan, coloured as a photo, by class or by height, with class toggles, point picking and a distance tool. Points rise into place when the view opens. *Gaussian splats* draws the same scan with our WebGL2 3DGS renderer (one splat per coloured point, with a Luma-style reveal); sites without a survey show the gaussian twin, labelled as generated. |
 
 ![Analyze](docs/img/12-gc-analyze.jpg)
 ![Simulate](docs/img/13-gc-simulate.jpg)
 ![Point cloud](docs/img/14-gc-pointcloud.jpg)
 
 **Any place on Earth.** Search a place name or type `lat, lon`. The city appears at once from OpenStreetMap: about a kilometre of buildings with heights, roads, parks, water, rail, street names and places (health, schools, food, shops, transit). An *Area intelligence* panel reads it: a radar of daily needs nearby, land cover, bus-stop coverage, tagged-height share and road kilometres. Then *Build a twin here* runs the full engine for that spot in the background (300, 500 or 800 m; a 500 m twin for MG Road, Bengaluru took 45 seconds) and opens it when ready. The local server (`scripts/dev_api.py`) does the building (`/build`) and caches map downloads (`/context`); the five demo sites keep their map detail in `web/data/<site>/context.json.gz`, so they never wait on Overpass.
+
+**Your own drone scan.** *Upload scan* (top bar) takes a LAS, LAZ or PLY point cloud of any town or city: drone photogrammetry or LiDAR. The file's own coordinate system puts it on the map (no search needed), and the builder then finds the ground (a progressive morphological filter), vegetation (survey classes, multiple returns, or colour: excess green, with dry brown-olive scrub counted as vegetation outside mapped buildings) and roofs, measures the height of every mapped building from its roof points (90th percentile), finds tree tops, and runs shade, fixes and traffic for the area the scan covers. Outside the scan the canopy map still supplies trees. Tested on the public drone survey of the IIT Gandhinagar campus (12.6 million coloured points, UTM 43N): 71 of 73 mapped buildings measured and 2,380 tree tops found, against 397 from the satellite canopy map for the same 900 m square. The UTM grid there is turned about 0.9 degrees from true north, so the points are placed with an affine fit to exact transforms (1.4 cm worst error), not a plain offset. Command line: `python -m streetscope build --cloud scan.laz --name campus` (`--cloud-epsg` if the file does not state its coordinate system).
 
 **3D infographics.** Junction load pillars (height = simulated peak load), a sun-exposure hex map of the walkways (share of daytime hours in direct sun), the sun's path over the site with the current hour and a sun ray, a bearing ring, numbered hot spots, road-width dimension lines, a live mini-map with the camera's view cone, a sun dial of walkway shade by hour, and a traffic-load histogram.
 
@@ -88,12 +90,13 @@ Cities plan streets from flat maps and old drawings. Heat is 3D: shade depends o
 
 ## Honest limits
 
-- Level of data: the three Delhi and Tokyo sites are level 3 (open data only). The two US sites are level 1: building heights come from USGS airborne LiDAR. An own phone scan (level 2) is planned.
+- Level of data: the three Delhi and Tokyo sites are level 3 (open data only). The two US sites are level 1: building heights come from USGS airborne LiDAR. An uploaded drone or LiDAR scan also makes a site level 1 where the scan covers it.
+- Drone scans usually come without classes. Ours are derived (ground by a morphological filter, vegetation by colour, buildings only inside mapped footprints) and marked as derived in the point view. Buildings that OpenStreetMap lacks are not added from the scan yet: a first try picked up bushes and fences, so it was left out.
 - OpenStreetMap often lacks widths and heights. The viewer shows the percentages, for example 23% of road widths and 17% of building heights are real at the AIIMS site.
 - Trees come from OpenStreetMap plus the Meta and WRI 1 m canopy height map (AWS Open Data). At AIIMS that is 369 tree tops and 24% cover where OpenStreetMap mapped none. The map's average error is 2.8 m and touching crowns merge, so counts are a lower bound. Dense Shibuya shows only 8 canopy tops, which is true to a concrete district.
 - Planted-tree results assume an 8 m tree with a 3 m crown. Costs use assumed unit rates (6,000 rupees per tree, 3,500 per m² of footpath) and are not quotes. Widening a footpath adds walking space but barely changes the shade percentage, and the page shows that rather than hiding it.
 - **The traffic screen is simulated.** No traffic counts are used. Demand comes from building floor area, is scaled so the busiest links sit near capacity, and lane capacities are assumed. Read the ranking and the relative change of each fix, not the vehicle numbers. Every fix states its assumption (for example "15% of trips follow the diversion signs") and its cost is an assumed unit rate.
-- The gaussian view uses a real 3DGS renderer, but the twin's gaussians are generated from open map data, not trained from photos, so facades and roofs are typical rather than true to life. A photo-real twin needs a phone or drone scan (level 2); such a capture can be opened in the same viewer.
+- The gaussian view uses a real 3DGS renderer. For a coloured scan the splats are the measured points (one disc per point), not trained from photos; for open-data sites they are generated from the map, so facades and roofs are typical rather than true to life. A trained 3DGS capture (.ply or .splat) can be opened in the same viewer.
 - LiDAR trees: the two surveys used here carry no vegetation labels, so trees are found from multiple-return pulses. Touching crowns merge and a few shrubs or scaffolds can slip in; the viewer says so. At Times Square 91 of 102 building heights are measured and 77 tree tops are found (1.7% cover); Dupont Circle has 489 (19.6%).
 - The simulator demo is not a calibrated traffic model. Its bus-lane result assumes 40% of car trips move to buses.
 - The Claude Code path was tested live on this machine (traffic question and engineer's brief, every number verified). The Anthropic API and Bedrock paths are tested only with a stand-in client.
@@ -125,9 +128,11 @@ set PYTHONPATH=pipeline
 python -m streetscope build --lat 28.5672 --lon 77.2100 --radius 300 --name aiims --out web/data
 ```
 
+With your own survey instead: `python -m streetscope build --cloud scan.laz --name campus --out web/data` (centre and radius come from the file). In the app, *Upload scan* does the same through `POST /upload` on `scripts/dev_api.py`; uploads are kept in `web/data/_uploads` (not in git).
+
 Inside the US the builder reads USGS LiDAR automatically (`--lidar off` to skip); elsewhere it reads the canopy map (`--no-canopy` to skip). Both are cached in the site folder. Add the site to `web/data/index.json` to see it in the viewer. Use `--tz` for the site's UTC offset and `--date` for the day to model. `python scripts/rebuild_sites.py --cached` rebuilds all five sample sites from their saved downloads.
 
-Tests (69):
+Tests (75):
 
 ```bash
 set PYTHONPATH=pipeline;agent
@@ -170,6 +175,8 @@ canopy map / USGS LiDAR -->        |  shade engine, scenarios, traffic screen
 - GreenCityAI basemap: Esri World Dark Gray Canvas. Live weather and air quality: Open-Meteo (CC BY 4.0). Place search: OpenStreetMap Nominatim.
 - Trees: Meta and WRI canopy height map, CC BY 4.0, read from AWS Open Data with rasterio.
 - Heights: USGS 3D Elevation Program LiDAR, public domain, read from the AWS Open Data bucket `usgs-lidar-public` (Entwine Point Tiles). The pipeline finds the survey that covers a point, downloads only the octree nodes inside a 340 m window, and caches 1 m rasters as `lidar.npz`.
+- Drone survey in the video and tests: *Utilizing UAV-based photogrammetry to develop a 3D Model of IITGN*, S. K. Misra, P. Khanna and students of IIT Gandhinagar (2024), Mendeley Data, doi:10.17632/nmxysw8ybx.1, CC BY-NC 3.0. We took the mesh vertices with CloudCompare, thinned them to 25 cm and cropped a 920 m square. The data is not in this repository.
+- Point files: laspy with lazrs (LAS/LAZ), pyproj for coordinate systems, scipy for the ground filter.
 - Traffic model: the BPR volume-delay curve (US Bureau of Public Roads, 1964), applied with our own assumed capacities.
 
 ## Rules check
@@ -188,7 +195,8 @@ While building: add your own honest list here before submitting, as the hackatho
 
 ```
 app/        GreenCityAI: React + TypeScript + Cesium app (builds into web/app)
-pipeline/   Twin Builder: geo, osm, twin, shade, canopy, lidar, points, scenarios, traffic, cli + tests
+video/      the submission video, made by code (recorder, Gemini TTS voice import or local Veena voice, edit)
+pipeline/   Twin Builder: geo, osm, twin, shade, canopy, lidar, cloud (your own scans), points, scenarios, traffic, cli + tests
 agent/      Claude doctor (Claude Code, API or Bedrock), MCP tool server, tools, number verifier, Lambda handler + tests
 web/        viewer, gaussian splat renderer (gs.js), real 3D page, simulator demo, sample twins (data/)
 infra/      AWS SAM template

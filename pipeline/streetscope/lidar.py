@@ -249,8 +249,12 @@ def load(path: Path) -> dict:
             "veg_method": str(z["veg_method"]) if "veg_method" in z.files else "classes"}
 
 
-def apply(twin: dict, r: dict, project: str, cell: float = 1.0) -> dict:
-    """Replace assumed building heights and canopy-map trees with LiDAR-measured ones."""
+def apply(twin: dict, r: dict, project: str, cell: float = 1.0, covered: np.ndarray | None = None,
+          attribution: str = ATTRIBUTION, source: str = "USGS 3DEP LiDAR vegetation points", licence: str = "public domain",
+          kind: str = "LiDAR", tag: str = "lidar") -> dict:
+    """Replace assumed building heights and canopy-map trees with measured ones.
+
+    `covered` (a grid mask) limits the change to where the survey has points: outside it, trees from the canopy map stay."""
     grid = Grid(twin["meta"]["radius_m"], cell)
     agl, veg = r["agl"], r["veg"]
     measured = 0
@@ -263,27 +267,31 @@ def apply(twin: dict, r: dict, project: str, cell: float = 1.0) -> dict:
         if len(vals) < max(6, 0.35 * m.sum()):
             continue  # most of the footprint is not above ground: not a roof, leave the old height
         b["height_m"] = round(float(np.percentile(vals, 90)), 1)
-        b["height_source"] = "lidar"
+        b["height_source"] = tag
         measured += 1
     blocked = canopy.building_mask(twin, grid)
     tops = canopy.detect_tops(np.clip(veg, 0, 255).astype(np.uint8), blocked, grid)
     for t in tops:
         t["source"] = "lidar"
-    keep = [t for t in twin["trees"] if t.get("source") == "osm"]
+    if covered is not None:
+        tops = [t for t in tops if covered[min(grid.n - 1, grid.idx(t["z"], grid.z0)), min(grid.n - 1, grid.idx(t["x"], grid.x0))]]
+    seen = lambda t: covered is None or covered[min(grid.n - 1, max(0, grid.idx(t["z"], grid.z0))), min(grid.n - 1, max(0, grid.idx(t["x"], grid.x0)))]
+    keep = [t for t in twin["trees"] if t.get("source") == "osm" or not seen(t)]
     twin["trees"] = canopy.merge_trees(keep, tops)
-    cover = ((veg >= canopy.MIN_TREE_M) & ~blocked).sum() / max(1, (~blocked).sum()) * 100
+    area = ~blocked if covered is None else (~blocked & covered)
+    cover = ((veg >= canopy.MIN_TREE_M) & area).sum() / max(1, area.sum()) * 100
     info = {"project": project, "buildings_measured": measured, "buildings_total": len(twin["buildings"]),
             "tree_tops_found": len(tops), "osm_trees": len(keep), "trees_total": len(twin["trees"]),
             "canopy_cover_pct": round(float(cover), 1), "points_per_cell": round(r["density"], 2),
             "coverage_pct": round(r["coverage"] * 100, 1), "vegetation_method": r.get("veg_method", "classes")}
     twin["meta"]["data_level"] = 1
-    twin["meta"]["attribution"] += "; " + ATTRIBUTION
+    twin["meta"]["attribution"] += "; " + attribution
     st = twin["stats"]
     st["lidar"] = info
     st["trees"] = len(twin["trees"])
     st["canopy"] = {**st.get("canopy", {}), "canopy_cover_pct": info["canopy_cover_pct"], "tree_tops_found": len(tops),
-                    "osm_trees": len(keep), "trees_total": len(twin["trees"]), "source": "USGS 3DEP LiDAR vegetation points",
-                    "licence": "public domain", "map_error_m": 0.3,
+                    "osm_trees": len(keep), "trees_total": len(twin["trees"]), "source": source,
+                    "licence": licence, "map_error_m": 0.3,
                     "note": ("tree tops measured from LiDAR vegetation points; touching crowns still merge"
                              if r.get("veg_method", "classes") == "classes" else
                              "this survey has no vegetation labels, so trees are found from multiple-return pulses; "
@@ -293,6 +301,6 @@ def apply(twin: dict, r: dict, project: str, cell: float = 1.0) -> dict:
         hs[b["height_source"]] = hs.get(b["height_source"], 0) + 1
     st["building_height_sources"] = hs
     st["gaps"] = [g for g in st["gaps"] if "tree" not in g and "buildings have a height" not in g] + [
-        f"LiDAR measured the height of {measured} of {len(twin['buildings'])} buildings; the rest are assumed.",
-        f"LiDAR found {len(tops)} tree tops. Touching crowns merge, so the count is a lower bound."]
+        f"{kind} measured the height of {measured} of {len(twin['buildings'])} buildings; the rest are assumed.",
+        f"{kind} found {len(tops)} tree tops. Touching crowns merge, so the count is a lower bound."]
     return info

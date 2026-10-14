@@ -5,5 +5,6 @@
  {"id": "times", "name": "Times Square, New York (level 1, LiDAR)", "twin": "times/twin.json"},
  {"id": "dupont", "name": "Dupont Circle, Washington DC (level 1, LiDAR)", "twin": "dupont/twin.json"},
  {"id": "mg_road", "name": "MG Road, Bengaluru (level 3)", "twin": "mg_road/twin.json", "built": true},
- {"id": "charminar", "name": "Charminar, Hyderabad (level 3)", "twin": "charminar/twin.json", "built": true}
+ {"id": "charminar", "name": "Charminar (level 3)", "twin": "charminar/twin.json", "built": true},
+ {"id": "marina_bay_sands", "name": "Marina Bay Sands (level 3)", "twin": "marina_bay_sands/twin.json", "built": true}
 ]}

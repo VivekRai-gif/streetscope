@@ -8,7 +8,9 @@ const MODES: [Mode, string][] = [['explore', 'Explore'], ['analyze', 'Analyze'],
 export function TopNav(p: {
   mode: Mode; setMode: (m: Mode) => void; sites: SiteRef[]; siteId: string; onSite: (id: string) => void; onPlace: (pl: Place) => void
   status: { tiles: string; doctor: string; live: boolean }; onSettings: () => void; cloud: boolean; setCloud: (v: boolean) => void; placeName?: string
+  onUpload: (f: File) => void
 }) {
+  const file = useRef<HTMLInputElement>(null)
   return (
     <nav className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-4 px-4 pt-3">
       <div className="glass pointer-events-auto flex h-11 items-center gap-2.5 rounded-xl pl-3 pr-4">
@@ -19,6 +21,11 @@ export function TopNav(p: {
         </div>
       </div>
       <LocationSearch sites={p.sites} siteId={p.siteId} onSite={p.onSite} onPlace={p.onPlace} placeName={p.placeName} />
+      <button onClick={() => file.current?.click()} className="glass pointer-events-auto flex h-11 items-center gap-2 rounded-xl px-3.5 text-[12.5px] text-ink hover:text-white" title="Build a twin from your own drone or LiDAR point cloud (LAS, LAZ or PLY)" aria-label="Upload a drone scan">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="1.7" strokeLinecap="round"><circle cx="5" cy="5" r="2.2" /><circle cx="19" cy="5" r="2.2" /><path d="M7 6.5 10 9.5M17 6.5 14 9.5" /><rect x="9.5" y="8.5" width="5" height="4" rx="1" /><path d="M12 15v6M9 18l3-3 3 3" /></svg>
+        Upload scan
+      </button>
+      <input ref={file} type="file" accept=".las,.laz,.ply" className="hidden" data-testid="scan-input" onChange={e => { const f = e.target.files?.[0]; if (f) p.onUpload(f); e.target.value = '' }} />
       <div className="glass pointer-events-auto mx-auto flex h-11 items-center rounded-xl px-1.5">
         <div className="seg !border-0 !bg-transparent" role="tablist" aria-label="Mode">
           {MODES.map(([m, l]) => <button key={m} role="tab" aria-pressed={p.mode === m} onClick={() => p.setMode(m)}>{l}</button>)}
@@ -96,7 +103,7 @@ function LocationSearch({ sites, siteId, onSite, onPlace, placeName }: { sites: 
           <div className="label px-3 pb-1 pt-1.5">Analysed twins</div>
           {local.map(s => (
             <button key={s.id} onMouseDown={() => { onSite(s.id); setQ(''); setOpen(false) }} className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/5">
-              <span>{s.name.replace(/\s*\(.*\)/, '')}</span><span className="font-mono text-[10px] text-faint">{/level 1/.test(s.name) ? 'LIDAR' : 'OPEN DATA'}</span>
+              <span>{s.name.replace(/\s*\(.*\)/, '')}</span><span className="font-mono text-[10px] text-faint">{/drone/.test(s.name) ? 'DRONE' : /level 1/.test(s.name) ? 'LIDAR' : 'OPEN DATA'}</span>
             </button>
           ))}
           {places.length > 0 && <><div className="hair my-1.5" /><div className="label px-3 pb-1">Anywhere on Earth · open the map, then build a twin</div></>}

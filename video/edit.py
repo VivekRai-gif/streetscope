@@ -13,9 +13,10 @@ HERE = Path(__file__).resolve().parent
 B = HERE / "build"
 OUT = HERE / "out"
 NARR = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
-FADE = {"s1_twin": 0.04, "s8_outro": 0.04}      # continuous camera: a straight cut. Everything else crossfades.
+FADE = {"s1_twin": 0.04, "s9_points": 0.04, "s10_splats": 0.04, "s11_outro": 0.04}   # continuous camera: a straight cut. Everything else crossfades.
 XF = 0.5
-TOP_CAPTIONS = {"s6_simulate", "s7_anywhere"}    # panels sit at the bottom in these shots
+WHOOSH_PEAK = 0.455   # seconds from the start of whoosh.wav to its loudest point (music.py)
+TOP_CAPTIONS = {"s6_simulate", "s7_anywhere", "s8_drone"}    # panels sit at the bottom in these shots
 
 
 def clip_meta():
@@ -100,7 +101,8 @@ def lines(wt: list) -> list[list]:
 def captions(shots) -> list[list]:
     caps = []
     for m in shots:
-        seg = lambda t: next((k for k, v in enumerate(m["voice"]) if v["from"] - 1e-6 <= t <= v["to"] + 1e-6), -1)
+        # a word that starts exactly where the voice was split belongs to the part after the split
+        seg = lambda t: max((k for k, v in enumerate(m["voice"]) if v["from"] - 1e-6 <= t <= v["to"] + 1e-6), default=-1)
         for ln in lines(word_times(m["tts"])):
             groups = []
             for w in ln:   # a line never spans a pause in the voice
@@ -190,7 +192,7 @@ def main() -> None:
     inputs += ["-i", str(B / "audio" / "whoosh.wav")]
     wh_i = a_idx
     a_idx += 1
-    whs = [max(0, m["start"] - .45) for m in shots[1:] if m["xf"] > .1]
+    whs = [max(0, m["start"] + m["xf"] / 2 - WHOOSH_PEAK) for m in shots[1:] if m["xf"] > .1]   # loudest at the middle of the crossfade
     fc.append(f"[{wh_i}:a]asplit={len(whs)}" + "".join(f"[wh{k}]" for k in range(len(whs))))
     for k, w in enumerate(whs):
         ms = int(round(w * 1000))

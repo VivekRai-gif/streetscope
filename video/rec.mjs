@@ -59,7 +59,7 @@ const OVERLAY = `(() => {
   .__rip{position:fixed;z-index:2147483646;pointer-events:none;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:2px solid #67e8f9;box-shadow:0 0 18px #22d3ee;animation:__rip .65s ease-out forwards}
   @keyframes __rip{from{transform:scale(.25);opacity:1}to{transform:scale(1.6);opacity:0}}
   #__chap{position:fixed;left:50%;top:76px;z-index:2147483640;pointer-events:none;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
-    padding:9px 18px 9px 10px;border-radius:999px;background:rgba(6,12,20,.78);backdrop-filter:blur(14px);border:1px solid rgba(103,232,249,.35);
+    padding:9px 18px;border-radius:999px;background:rgba(6,12,20,.78);backdrop-filter:blur(14px);border:1px solid rgba(103,232,249,.35);
     box-shadow:0 0 0 1px rgba(255,255,255,.03),0 10px 40px rgba(0,0,0,.45),0 0 28px rgba(34,211,238,.18);font-family:Inter,'Segoe UI',sans-serif;opacity:0}
   #__chap.on{animation:__chin .7s cubic-bezier(.2,.8,.2,1) forwards}
   #__chap.off{animation:__chout .45s ease-in forwards}
@@ -94,7 +94,7 @@ const OVERLAY = `(() => {
     cursor(x, y) { cx = x; cy = y; put() },
     hideCursor() { cx = -100; cy = -100; put() },
     ripple(x, y) { const r = document.createElement('div'); r.className = '__rip'; r.style.left = x + 'px'; r.style.top = y + 'px'; document.body.appendChild(r); setTimeout(() => r.remove(), 900) },
-    chapter(n, title, sub) { chap.innerHTML = '<b>' + n + '</b><span>' + title + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); chap.className = ''; void chap.offsetWidth; chap.className = 'on' },
+    chapter(n, title, sub) { chap.innerHTML = '<span>' + title + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); chap.className = ''; void chap.offsetWidth; chap.className = 'on' },
     chapterOff() { chap.className = 'off' },
     callout(id, x, y, k, v, s, tone) {
       let el = document.getElementById('__c_' + id); if (el) el.remove()
@@ -122,10 +122,11 @@ export async function launch({ W = 1920, H = 1080, dsf = 1, tag = 'rec' } = {}) 
   const ws = new WebSocket(page.webSocketDebuggerUrl)
   await new Promise(r => ws.onopen = r)
   let id = 0
-  const pend = new Map(), log = []
+  const pend = new Map(), log = [], on = {}
   ws.onmessage = e => {
     const m = JSON.parse(e.data)
     if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id) }
+    else if (m.method && on[m.method]) on[m.method](m.params)
     else if (m.method === 'Runtime.exceptionThrown') log.push('EXC ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).slice(0, 300))
     else if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') log.push('ERR ' + m.params.args.map(a => a.value || a.description).join(' ').slice(0, 300))
   }
@@ -133,7 +134,7 @@ export async function launch({ W = 1920, H = 1080, dsf = 1, tag = 'rec' } = {}) 
   await send('Runtime.enable'); await send('Page.enable')
   await send('Emulation.setDeviceMetricsOverride', { width: Math.round(W / dsf), height: Math.round(H / dsf), deviceScaleFactor: dsf, mobile: false })
   await send('Page.addScriptToEvaluateOnNewDocument', { source: VIRTUAL_TIME })
-  return new Rec({ chrome, ws, send, log, W, H, dsf })
+  return new Rec({ chrome, ws, send, log, on, W, H, dsf })
 }
 
 class Rec {
@@ -187,6 +188,16 @@ class Rec {
     if (!this.ff.stdin.write(buf)) await new Promise(res => this.ff.stdin.once('drain', res))
     this.frames++
   }
+  /* real time passes but page time does not: the page keeps drawing (tiles stream in), nothing is recorded */
+  async warmUntil(expr, minSec = 0, maxSec = 60) {
+    const t0 = Date.now()
+    for (;;) {
+      await this.eval(`__vt.frame(0)`)
+      const el = (Date.now() - t0) / 1000
+      if (el >= minSec && (!expr || await this.eval(`(() => { try { return !!(${expr}) } catch (e) { return false } })()`))) return true
+      if (el > maxSec) return false
+    }
+  }
   async hold(sec, each) { const n = Math.round(sec * FPS); for (let i = 0; i < n; i++) { if (each) await each(i / n, i); await this.frame() } }
   /* record until a condition holds in the page (for things that take real time, such as a fetch) */
   async holdUntil(expr, maxSec = 20) { const n = maxSec * FPS; for (let i = 0; i < n; i++) { if (await this.eval(`(() => { try { return !!(${expr}) } catch (e) { return false } })()`)) return true; await this.frame() } return false }
@@ -226,6 +237,15 @@ class Rec {
   async key(k, code = k, vk = 13) {
     await this.send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk })
     await this.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk })
+  }
+  /* the next file chooser the page opens gets these files (absolute paths), as if the user picked them */
+  async chooseFiles(files) {
+    await this.send('Page.setInterceptFileChooserDialog', { enabled: true })
+    this.on['Page.fileChooserOpened'] = async p => {
+      delete this.on['Page.fileChooserOpened']
+      await this.send('DOM.setFileInputFiles', { files, backendNodeId: p.backendNodeId })
+      await this.send('Page.setInterceptFileChooserDialog', { enabled: false })
+    }
   }
   async close() { try { this.ws.close() } catch { } this.chrome.kill() }
 }

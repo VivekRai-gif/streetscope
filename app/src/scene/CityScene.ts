@@ -50,6 +50,7 @@ export class CityScene {
   private walkers: Particle[] = []
   private mul = new Map<number, number>()
   private orbit: { c: Cesium.Cartesian3; h: number; p: number; r: number } | null = null
+  orbitSpeed = .05   // radians per second while orbiting
   private last = performance.now()
   private frameT = performance.now()
   private shadeHour = 0
@@ -389,6 +390,11 @@ export class CityScene {
     tr.links.forEach(l => {
       if (l.pts.length < 2) return
       lines.add({ positions: this.line3(l.pts, .5), width: 1.5 + 3.2 * Math.min(l.r, 1.4), material: this.glow(loadColor(l.r), Math.round((.5 + .35 * Math.min(1, l.r)) * 10) / 10) })
+      // over capacity: a wide red glow and a bright core, so the overloaded parts read first
+      if (l.r >= 1) {
+        lines.add({ positions: this.line3(l.pts, .7), width: 11 + 6 * Math.min(l.r - 1, 1), material: this.glow(COL.coral, .9, .32) })
+        lines.add({ positions: this.line3(l.pts, .9), width: 3, material: this.solid('#ff2d55', .95) })
+      }
       const len = polyLength(l.pts)
       if (len < 6) return
       const n = Math.max(1, Math.min(12, Math.round(len / 26 * Math.min(l.r, 1.4) * 1.4))), lane = 1.2 + .9 * Math.min(l.lanes, 3)
@@ -399,7 +405,7 @@ export class CityScene {
           p: pts.add({ position: fw.pos[0], pixelSize: 3 + Math.min(l.lanes, 3), color: C(loadColor(l.r), .95) }) })
       }
     })
-    this.corridors('congestion', tr.links.filter(l => l.r >= .85 && l.pts.length > 1).map(l => ({ pts: l.pts, w: 4 + 3.2 * l.lanes * 2, col: C(l.r >= 1 ? COL.coral : '#fb923c', .26), h: .15 })), this.tilesOn)
+    this.corridors('congestion', tr.links.filter(l => l.r >= .85 && l.pts.length > 1).map(l => ({ pts: l.pts, w: 4 + 3.2 * l.lanes * 2, col: C(l.r >= 1 ? COL.coral : '#fb923c', l.r >= 1 ? .5 : .26), h: .15 })), this.tilesOn)
   }
 
   /* pedestrians: illustrative streams on footpaths (no counts exist) */
@@ -636,7 +642,7 @@ export class CityScene {
       if (mat) mat.uniforms.color = q.col.withAlpha(.32 * (1 - f))
     }
     if (this.orbit && !this.reduced) {
-      this.orbit.h += dt * .05
+      this.orbit.h += dt * this.orbitSpeed
       this.viewer.camera.lookAt(this.orbit.c, new Cesium.HeadingPitchRange(this.orbit.h, this.orbit.p, this.orbit.r))
     }
     if (now - this.camT > 150) {

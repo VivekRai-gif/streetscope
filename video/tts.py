@@ -1,10 +1,12 @@
 """Voice-over for the submission video: one clip per shot, with word timings for captions and cue points.
 
-Uses Microsoft Edge neural voices through the edge-tts package (Indian English, en-IN). Needs internet.
+Fallback voice: Microsoft Edge neural voices through the edge-tts package (Indian English, en-IN). Needs internet.
+The video uses tts_veena.py (an open Indian voice model, run locally) when narration.json says "engine": "veena".
 Run: python video/tts.py [shot ids]   ->  video/build/tts/<shot>.mp3 and <shot>.json
 """
 import asyncio
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +43,7 @@ async def main() -> None:
         if only and s["id"] not in only:
             continue
         mp3 = OUT / f"{s['id']}.mp3"
+        s = {**s, "text": re.sub(r"\{([^|}]*)\|[^}]*\}", lambda m: m.group(1), s["text"])}   # {shown|said}: Edge voices read the shown form well
         words = await speak(s["text"], cfg["voice"], cfg["rate"], mp3)
         d = duration(mp3)
         total += d

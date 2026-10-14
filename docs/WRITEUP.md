@@ -16,7 +16,9 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 6. **Doctor** (`agent/`). Claude Sonnet 5.5 with eleven allow-listed tools. It cannot read raw data. A number checker traces every figure in its answer to a tool result and flags any that did not come from one. It can write a short engineer's brief (where it hurts, what we would try, how sure we are). Locally it runs through the Claude Code command line with the user's own login, so no API key is needed; the tools reach it through a small MCP server and it gets no file, shell or web access. When deployed it runs on Amazon Bedrock. Without a key it falls back to clearly labelled offline templates over the same tools.
 7. **Real 3D page** (`web/earth.html`, CesiumJS). The same analysis on Google Photorealistic 3D Tiles (display only, per Google's terms), with cameras, glow and a guided tour. A simulator demo shows a generated junction with cars and signals.
 
-8. **GreenCityAI** (`app/`, React, TypeScript, CesiumJS, Three.js). The product face: a full-screen 3D city on Google Photorealistic 3D Tiles (or a dark open-data city without a key) with spatial infographics anchored to the map, click-to-fly junctions, an *Analyze Area* scan with three located findings, a Before / Proposed simulation with animated proposals and a metric strip, an effect-against-cost comparison, live weather and air quality, and a LiDAR point-cloud inspector with picking and measurement. Every number carries its basis: observed, computed, simulated, proposed or assumed.
+8. **GreenCityAI** (`app/`, React, TypeScript, CesiumJS, Three.js). The product face: a full-screen 3D city on Google Photorealistic 3D Tiles (or a dark open-data city without a key) with spatial infographics anchored to the map, click-to-fly junctions, an *Analyze Area* scan with three located findings, a Before / Proposed simulation with animated proposals and a metric strip, an effect-against-cost comparison, live weather and air quality, and a point-cloud inspector (photo, class or height colours, picking and measurement) with the same scan as gaussian splats. Every number carries its basis: observed, computed, simulated, proposed or assumed.
+
+9. **Your own drone scan** (`pipeline/streetscope/cloud.py`, *Upload scan* in the app). Upload a LAS, LAZ or PLY point cloud of any town or city. The file's coordinate system places it on the map; the builder finds ground (morphological filter), vegetation (classes, returns or colour) and roofs, measures every mapped building, finds tree tops, and runs shade, fixes and traffic where the scan covers. The point view shows the scan in true colour, and the gaussian view draws one splat per measured point with the reveal animation.
 
 ## Results from the real data
 
@@ -26,6 +28,7 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 | Connaught Place, Delhi (500 m, sun of 15 May) | 3 | 212 buildings, 936 trees (900 canopy tops), 26.2% cover. At noon the sun is 79° high and only 4.1% of walkway is shaded. 200 street trees lift day-mean walkway shade 13.9% to 17.0%. | 20 links over assumed capacity. Middle Circle and Radial Road 2 at 1.57 times capacity; a diversion cuts it to 1.44 and network delay 9.2%. |
 | Shibuya, Tokyo | 3 | Dense and already 61% shaded; canopy map finds only 8 tree tops, which fits a concrete district. | 11 links over capacity; top area scores 99.1. |
 | Times Square, New York | 1 (LiDAR) | 91 of 102 building heights measured. | 7th Avenue and West 44th Street: signal retiming cuts area load 10.7%. |
+| IIT Gandhinagar campus, Gujarat (uploaded drone scan, 12.6 M points) | 1 (drone survey) | 71 of 73 mapped buildings measured from roof points; 2,380 tree tops from the scan, against 397 from the satellite canopy map for the same square. | (campus roads; screened like any site) |
 | Dupont Circle, Washington DC | 1 (LiDAR) | 143 of 162 heights measured, 489 tree tops. Shade 56.9% to 67.1% with trees. | The circle scores 98.4; diverting 15% of through trips cuts area load from 1.24 to 1.06 times capacity. |
 
 ## Why we can be trusted
@@ -33,7 +36,7 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 - **Deterministic core.** Shade, widths, counts and traffic load come from code, not from a language model. The model only chooses which tool to call and explains the result.
 - **Verification.** Every number in a doctor answer is checked against tool output (`verify.py`, tested).
 - **Honesty on screen.** Tags on every number (measured, computed, estimated, simulated, assumed). Defaults are listed. Tree counts from satellite data are labelled a lower bound. Traffic results are labelled simulated and come with the sentence "No traffic counts were used."
-- **Tests.** 64 automated tests cover geometry, sun position, shadows, canopy and LiDAR processing, scenarios, the traffic screen, the verifier, the Claude tool loop and the Claude Code path (with stand-ins), the MCP tool server and the Lambda handler. The Claude Code path was also run live.
+- **Tests.** 75 automated tests cover geometry, sun position, shadows, canopy, LiDAR and drone-scan processing (ground filter, colour classes, true-north placement, LAS round trip), scenarios, the traffic screen, the verifier, the Claude tool loop and the Claude Code path (with stand-ins), the MCP tool server and the Lambda handler. The Claude Code path was also run live.
 
 ## Limits we state plainly
 
@@ -41,7 +44,8 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 - The two LiDAR surveys carry no vegetation labels, so trees come from multiple-return pulses. Touching crowns merge.
 - Tree fixes assume an 8 m tree with a 3 m crown. Costs use assumed unit rates and are not quotes.
 - The traffic screen has no counts. Demand is derived from floor area and scaled so the busiest links sit near capacity, so it ranks places and compares fixes; it does not predict vehicle numbers. A real study needs counts.
-- The gaussian view is real 3DGS rendering, but the twin's gaussians are generated from map data, not trained from photos. A photo-real twin needs a scan (level 2), which the same viewer can open.
+- The gaussian view is real 3DGS rendering. From a coloured scan the splats are the measured points, one disc each, not trained from photos; for open-data sites they are generated from map data. A trained capture (.ply or .splat) opens in the same viewer.
+- Drone scans usually have no classes, so ours are derived and marked as such. Buildings missing from OpenStreetMap are not yet added from a scan: a first try picked up bushes and fences.
 - The AWS template is linted but not yet deployed from this repository.
 
 ## AWS and open source used
@@ -49,7 +53,9 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 - Claude Sonnet 5.5 on Amazon Bedrock for the deployed doctor (Anthropic Python SDK). Optional Strands Agents SDK path.
 - AWS Open Data: USGS 3DEP LiDAR (`usgs-lidar-public`) and the Meta and WRI canopy height map.
 - AWS SAM template: S3 and CloudFront for the site, Lambda with a Function URL for the doctor.
-- three.js, CesiumJS, numpy, laspy, rasterio, pyproj. Map data (c) OpenStreetMap contributors, ODbL.
+- three.js, CesiumJS, numpy, scipy, laspy, rasterio, pyproj. Map data (c) OpenStreetMap contributors, ODbL.
+- Drone survey shown in the video: IIT Gandhinagar campus, Misra, Khanna et al. (2024), Mendeley Data, doi:10.17632/nmxysw8ybx.1, CC BY-NC 3.0.
+- Video voice: Gemini 3.8 Flash TTS (Google AI Studio), recorded from our script and lined up word by word with forced alignment; Whisper checks every chapter.
 
 ## AI tools used
 
@@ -60,4 +66,4 @@ A city engineer has to decide where to plant the next 100 trees along a busy jun
 
 - Student project, new work: repository history starts on 9 October 2026, during the event.
 - Public repository: make the repo public before submitting.
-- Video: see `docs/VIDEO_SCRIPT.md`.
+- Video: made by code, see `video/README.md`.

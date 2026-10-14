@@ -7,6 +7,8 @@
    Where the splats come from:
    - GS.fromTwin(twin)      generated from the open-data twin (ground, road markings, facades, roofs, tree crowns).
                             Real renderer, but the gaussians are made from map data, not trained from photos.
+   - GS.fromPoints(cloud)   one splat per point of a coloured survey (drone photogrammetry or LiDAR with RGB): real
+                            measured positions and colours, but not trained, so the splats are simple discs.
    - GS.parsePly / parseSplat  a real captured scene (3DGS .ply or .splat), e.g. one trained in LichtFeld or gsplat.
    GS.toSplat writes the current scene as a standard .splat file for SuperSplat and other viewers.
 
@@ -133,6 +135,17 @@ GS.fromTwin=function(T,opt){
   return st.done({radius:R,source:'twin'});
 };
 function inPoly(x,z,f){let c=false;for(let i=0,j=f.length-1;i<f.length;j=i++){const a=f[i],b=f[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+
+/* ---------- gaussians from a coloured survey point cloud ---------- */
+// P: {count, xyz (site metres, y up), rgb (bytes), cls}. Ground and roads become flat discs facing up, everything else
+// small round splats; the size follows the point spacing so the surface closes without blurring detail.
+GS.fromPoints=function(P,opt){
+  opt=opt||{};const n=P.count,st=new Store(n),sp=opt.spacing||.6,rand=rng(opt.seed||5),q=[1,0,0,0],up=octEnc(0,1,0);
+  for(let i=0;i<n;i++){const c=P.cls[i]&127,i3=i*3,col=[P.rgb[i3],P.rgb[i3+1],P.rgb[i3+2]];
+    if(c===1||c===2)st.add(P.xyz[i3],P.xyz[i3+1],P.xyz[i3+2],sp*.62,sp*.08,sp*.62,q,col,240,up,0,rand());
+    else{const s=sp*(c===4?.5:.42);st.add(P.xyz[i3],P.xyz[i3+1],P.xyz[i3+2],s,s,s,q,col,230,up,0,rand())}}
+  return st.done({radius:opt.radius||300,source:'points'});
+};
 
 /* ---------- real captures: 3DGS .ply and .splat ---------- */
 GS.parsePly=function(buf){
